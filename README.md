@@ -24,3 +24,4 @@ TODO
 ----
 Lectures digitals o analògiques dels sensors?
 Hi ha gran diferència?
+Com fan les lectures digitals amb la llibreria de pololu?
