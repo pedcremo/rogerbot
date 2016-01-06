@@ -12,49 +12,65 @@ int PID_obtenir_errorp(void)
 	static char ultimo_errorp=0;
 	char contador_sensor=0;
 
-	if(((PINC & 0x04) != 0) && ((PINC & 0x02) != 0))
-	{
+	//if(((PINC & 0x04) != 0) && ((PINC & 0x02) != 0))
+	if (_SENSOR_D0 && _SENSOR_I0){//Central sensors on track
 		errorp=0;
 		return(0);
-	 }
+  }
 
-	if((PIND & 0x10) != 0) //I2 PD4 -7
-	{
+	#ifdef _SENSOR_I3
+			if (_SENSOR_I3) //I3  -7 on track
+			{
+					errorp = errorp - 0x09;
+					contador_sensor++;
+			}
+	#endif
+
+	//if((PIND & 0x10) != 0) //I2 PD4 -7
+	if (_SENSOR_I2){
 		errorp = errorp - 0x08;
 		contador_sensor++;
 	}
 
 
-	if((PINC & 0x01) != 0) //I1 PC0 -3
-	{
+	//if((PINC & 0x01) != 0) //I1 PC0 -3
+	if (_SENSOR_I1){
 		errorp = errorp - 0x03;
 		contador_sensor++;
 	}
 
-	if((PINC & 0x02) != 0) //I0 PC1 -1
-	{
+	//if((PINC & 0x02) != 0) //I0 PC1 -1
+	if (_SENSOR_I0){
 		errorp = errorp - 0x01;
 		contador_sensor++;
 	}
 
-	if((PINC & 0x04) != 0) //D0 PC2 +1
-	{
+	//if((PINC & 0x04) != 0) //D0 PC2 +1
+	if (_SENSOR_D0){
 		errorp = errorp + 0x01;
 		contador_sensor++;
 	}
 
-	if((PINC & 0x08) != 0) //D1 PC3 +3
-	{
+	//if((PINC & 0x08) != 0) //D1 PC3 +3
+	if (_SENSOR_D1){
 		errorp = errorp + 0x03;
 		contador_sensor++;
 	}
 
 
-	if((PIND & 0x80) != 0) //D2 PD7 +7
-	{
+	//if((PIND & 0x80) != 0) //D2 PD7 +7
+	if (_SENSOR_D2){
 		errorp = errorp + 0x08;
 		contador_sensor++;
 	}
+
+	#ifdef _SENSOR_D3
+			if (_SENSOR_D3) //D3  +7 on track
+			{
+					errorp = errorp + 0x09;
+					contador_sensor++;
+			}
+	#endif
 
 	//uart_putchar(errorp);
 	//uart_putchar('\n');
@@ -91,25 +107,26 @@ int obtenir_errord(void)
 
 	int diferencia = 0;
 
-	if(((PINC & 0x02) != 0) && ((PINC & 0x04) != 0))
+	//if(((PINC & 0x02) != 0) && ((PINC & 0x04) != 0))
+	if (_SENSOR_D0 && _SENSOR_I0 )  //Central sensors on track
 		error=0;
-
-	else if((PINC & 0x04) != 0) //D0 PC2 +1
+	//else if((PINC & 0x04) != 0) //D0 PC2 +1
+	else if (_SENSOR_D0) //
 		error = 1;
-
-	else if((PINC & 0x02) != 0) //I0 PC1 -1
+	//else if((PINC & 0x02) != 0) //I0 PC1 -1
+	else if (_SENSOR_I0)
 		error = -1;
-
-	else if((PINC & 0x08) != 0) //D1 PC3 +3
-		error=3;
-
-	else if((PINC & 0x01) != 0) //I1 PC0 -3
+	//else if((PINC & 0x08) != 0) //D1 PC3 +3
+	else if (_SENSOR_D1)
+	  error=3;
+	//else if((PINC & 0x01) != 0) //I1 PC0 -3
+	else if (_SENSOR_I1)
 		error = -3;
-
-	else if((PIND & 0x80) != 0) //D2 PD7 +7
+	//else if((PIND & 0x80) != 0) //D2 PD7 +7
+	else if (_SENSOR_D2)
 		error = 8;
-
-	else if((PIND & 0x10) != 0) //I2 PD4 -7
+	//else if((PIND & 0x10) != 0) //I2 PD4 -7
+	else if (_SENSOR_I2)
 		error = -8;
 
 	else

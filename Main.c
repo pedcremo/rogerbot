@@ -25,25 +25,16 @@
 //PB2
 #define PING_PORT 5
 
-//Infrared CNY70 Sensors. Inputs.
-#define D2 PORTD7
-#define D1 PORTC3
-#define D0 PORTC2
-#define I0 PORTC1
-#define I1 PORTC0
-#define I2 PORTD4
-
-
 /*********** Ajust comportament robot per defecte *********/
 /***** Variables globals ********/
 //Constants Regulador PD 30:1 HP
 //uint8_t cont_corba=0;
-uint8_t Kp = 18;  //48 lf 18 pots
-uint8_t  Kd = 28;//225 lf 28 pots multiplicador 100
-volatile uint8_t velocitat = 100; //225 lf 95 pots max 255
+uint8_t Kp = 44;  //48 lf 18 pots
+uint8_t  Kd = 48;//225 lf 28 pots multiplicador 100
+volatile uint8_t velocitat = 198; //225 lf 95 pots max 255
 uint8_t telemetry_enabled = 0; //1 enabled, 0 disabled
 //V 7.39 vel 100 kp 20 kd 700 9,2 segons pista taller rogerbot1
-char strategy = 'c'; //a -> By default line following using interrupts, b -> pots rescue
+char strategy = 'a'; //a -> By default line following using interrupts, b -> pots rescue
 uint8_t curve_correction = 0; //0 Means we brake internal wheel, other value means we change wheel direction backward a percentage of the max speed
 volatile char start=0;
 volatile uint8_t turbo = 0; //Increment de la velocitat que posem en certs moments
