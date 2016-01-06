@@ -19,3 +19,8 @@ Seguiment de línia https://www.youtube.com/watch?v=mVdQlziA4T0
 Seguiment de línia https://www.youtube.com/watch?v=nVbRpd_NfEo
 Prova de rescat https://www.youtube.com/watch?v=M8LMy-KG1w0  
 Prova de rescat https://www.youtube.com/watch?v=BnAOamVrsOA
+
+TODO
+----
+Lectures digitals o analògiques dels sensors?
+Hi ha gran diferència?
