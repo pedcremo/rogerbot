@@ -68,28 +68,39 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					buf->buffer[7]=',';
 					buf->buffer[6]=strategy;
 
-          buf->buffer[5]=',';
-          buf->buffer[4]='0'+(curve_correction/100);
-          buf->buffer[3]='0'+((curve_correction/10) % 10);
-          buf->buffer[2]='0'+(curve_correction % 10);
-
-
-
+          				buf->buffer[5]=',';
+          				buf->buffer[4]='0'+(curve_correction/100);
+          				buf->buffer[3]='0'+((curve_correction/10) % 10);
+          				buf->buffer[2]='0'+(curve_correction % 10);
 					buf->buffer[1]='z';
 					buf->buffer[0]='.';
 				}else if(buf->buffer[0]=='s'){ //Store Rogerbot settings */
-					velocitat=buf->buffer[1];
-					eeprom_write_byte((uint8_t *) VELOCITAT_ADDR_EEPROM,velocitat);
-					telemetry_enabled=buf->buffer[2];
-					eeprom_write_byte((uint8_t *) TELEMETRY_ENABLED_ADDR_EEPROM,telemetry_enabled);
-					Kp=buf->buffer[3];
-					eeprom_write_byte((uint8_t *) KP_ADDR_EEPROM,Kp);
-					Kd=buf->buffer[4];
-					eeprom_write_byte((uint8_t *) KD_ADDR_EEPROM,Kd);
-					strategy=buf->buffer[5];
-					eeprom_write_byte((uint8_t *) STRATEGY,strategy);
-          curve_correction=buf->buffer[6];
-          eeprom_write_byte((uint8_t *) CURVE_CORRECTION,curve_correction);
+					if (buf->buffer[7]=='.'){//Si arriba el caracter final . guardem sinó no ens arrisquem
+							velocitat=buf->buffer[1];
+							if (velocitat>=0 && velocitat<=255){
+								eeprom_write_byte((uint8_t *) VELOCITAT_ADDR_EEPROM,velocitat);
+							}
+							telemetry_enabled=buf->buffer[2];
+							if (telemetry_enabled==0 || telemetry_enabled==1){
+								eeprom_write_byte((uint8_t *) TELEMETRY_ENABLED_ADDR_EEPROM,telemetry_enabled);
+							}
+							Kp=buf->buffer[3];
+							if (Kp>=0 && Kp<=255){
+								eeprom_write_byte((uint8_t *) KP_ADDR_EEPROM,Kp);
+							}
+							Kd=buf->buffer[4];
+							if (Kd>=0 && Kd<=255){
+								eeprom_write_byte((uint8_t *) KD_ADDR_EEPROM,Kd);
+							}
+							strategy=buf->buffer[5];
+							if (strategy>=97 && strategy<=102){
+								eeprom_write_byte((uint8_t *) STRATEGY,strategy);
+							}
+		          				curve_correction=buf->buffer[6];
+							if (curve_correction>=0 && curve_correction<=255){
+		          					eeprom_write_byte((uint8_t *) CURVE_CORRECTION,curve_correction);
+							}
+					}
 					buf->index=1;
 					buf->buffer[1]='o';
 					buf->buffer[0]='.';
