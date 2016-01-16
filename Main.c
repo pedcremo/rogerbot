@@ -29,8 +29,8 @@
 /***** Variables globals ********/
 //Constants Regulador PD 30:1 HP
 //uint8_t cont_corba=0;
-uint8_t Kp = 44;  //48 lf 18 pots
-uint8_t  Kd = 48;//225 lf 28 pots multiplicador 100
+uint8_t Kp = 30;  //48 lf 18 pots
+uint8_t  Kd = 5;//225 lf 28 pots multiplicador 10
 volatile uint8_t velocitat = 198; //225 lf 95 pots max 255
 uint8_t telemetry_enabled = 0; //1 enabled, 0 disabled
 //V 7.39 vel 100 kp 20 kd 700 9,2 segons pista taller rogerbot1
@@ -90,7 +90,7 @@ int main( void )
 		rescue_state_machine();
 	}else if (strategy=='c' || strategy=='d') {//Rescue strategy. White cans inside, black ones outside. 'd' blind strategy w-b-w-b-w-b-w-b
 		//init_encoders();
-		delay_ms(400);
+		delay_ms_meu(400);
 		//Read 780 means we have 7,55 v. Our ideal
 		adjust_speed_to_a_threshold(voltage,770);
 
@@ -127,7 +127,7 @@ void init_current_millis(){ //Timer1 16 bits every tick are 3.2 micro seconds if
 }
 
 
-void delay_ms(int ms){
+void delay_ms_meu(int ms){
 	int i=0;
 	for (i=0;i<ms;i++){
 		_delay_ms(1);
@@ -187,7 +187,7 @@ void rescue_state_machine(){
 				break;
 			case 2:
 				move_robot(velocitat,velocitat*0.6,1,680); //Menegem robot enrere 200 ms
-				delay_ms(3000);
+				delay_ms_meu(3000);
 				while (finding_line(velocitat*0.6,velocitat,1)== 0){};
 				rescue_estat_actual=0; //Canvi d'estat
 				break;
@@ -225,7 +225,7 @@ void rescue_state_machine_2015(){
 				break;
 			case 1:
 				follow_line_fast();
-				delay_ms(2);
+				delay_ms_meu(2);
 				//if (DEBUG) USART_transmitByte(48); //Print 5
 				//if (telemetry_enabled) USART_transmitByte(48);
 				if (strategy=='c'){ //Si estrategia = e ni mirem color ni res que se li parega
@@ -235,7 +235,7 @@ void rescue_state_machine_2015(){
 						init_current_millis();
 
 						Motor_right_forward(0);Motor_left_forward(0);
-						if (DEBUG) {USART_transmitByte(50);delay_ms(delay_debug);} //Print 2
+						if (DEBUG) {USART_transmitByte(50);delay_ms_meu(delay_debug);} //Print 2
 						_delay_ms(30);
 						ping_read=ping();
 						if (ping_read>30 && ping_read<45){
@@ -246,7 +246,7 @@ void rescue_state_machine_2015(){
 						 	}else{
 							 	move_robot(velocitat/3,velocitat/3,FORWARD,35);
 							}
-							if (DEBUG) {USART_transmitByte(51);delay_ms(delay_debug*2);}// Print 3
+							if (DEBUG) {USART_transmitByte(51);delay_ms_meu(delay_debug*2);}// Print 3
 						}
 						lectura_pot=es_negre(); //0 Blanc, 1 negre
 						//Si el pot es negre i estem anant cap endins o el pot es blanc i estem
@@ -258,16 +258,16 @@ void rescue_state_machine_2015(){
 							//move_robot(velocitat*0.6,velocitat,FORWARD,250);
 							while (finding_line(velocitat*0.42,velocitat,FORWARD) == 0){};
 							Motor_right_forward(0);Motor_left_forward(0);
-							if (DEBUG){delay_ms(delay_debug);}
+							if (DEBUG){delay_ms_meu(delay_debug);}
 							move_robot(velocitat*0.8,velocitat,FORWARD,180);
 
-							if (DEBUG){delay_ms(delay_debug);}
+							if (DEBUG){delay_ms_meu(delay_debug);}
 
 							while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};
 
 							if (dir_robot==0) dir_robot=1;
 							else dir_robot=0;
-							if (DEBUG) {Motor_right_forward(0);Motor_left_forward(0);USART_transmitByte(52);delay_ms(delay_debug*2);}//Print 4
+							if (DEBUG) {Motor_right_forward(0);Motor_left_forward(0);USART_transmitByte(52);delay_ms_meu(delay_debug*2);}//Print 4
 						}
 						if (DEBUG) USART_transmitByte(53); //Print 5
 						turbo=20;
@@ -285,32 +285,32 @@ void rescue_state_machine_2015(){
 					Motor_right_forward(0);Motor_left_forward(0);
 
 					move_robot(velocitat,velocitat*0.8,FORWARD,180);
-					if (DEBUG) {USART_transmitByte(48);delay_ms(delay_debug);}// Print 0
+					if (DEBUG) {USART_transmitByte(48);delay_ms_meu(delay_debug);}// Print 0
 					while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};
 					Motor_right_forward(0);Motor_left_forward(0);
-					if (DEBUG) {delay_ms(delay_debug);}
+					if (DEBUG) {delay_ms_meu(delay_debug);}
 					turbo=0;
 				}else{ //Si el robot va cap endins del circuit i s ha acabat segment
 
 					move_robot(velocitat,velocitat,BACKWARD,180);
-					//delay_ms(3000);
+					//delay_ms_meu(3000);
 					move_robot(velocitat,-velocitat,FORWARD,170); //Girem sobre si mateix sentit antihorari uns 60graus
-					//delay_ms(3000);
-					//if (DEBUG) delay_ms(5000);
+					//delay_ms_meu(3000);
+					//if (DEBUG) delay_ms_meu(5000);
 					dir_robot=1; //Canviem direccio. Ara anirem de dins cap a fora
 					//while (finding_line(velocitat,velocitat*0.55,FORWARD) == 0){}; //Recte fins trobar la linia
 					while (finding_line(velocitat*0.8,velocitat,FORWARD) == 0){};
 					Motor_right_forward(0);Motor_left_forward(0);
-					if (DEBUG) {USART_transmitByte(50);delay_ms(delay_debug);} //Print 2
-					delay_ms(10);
+					if (DEBUG) {USART_transmitByte(50);delay_ms_meu(delay_debug);} //Print 2
+					delay_ms_meu(10);
 					move_robot(velocitat*0.8,velocitat,FORWARD,135);
 
-					if (DEBUG) {USART_transmitByte(51);delay_ms(delay_debug);} //Print 3
+					if (DEBUG) {USART_transmitByte(51);delay_ms_meu(delay_debug);} //Print 3
 					move_robot(velocitat/2,-velocitat/2,FORWARD,120); //Seguretat
 					while (finding_line(velocitat/2,-velocitat/2,FORWARD) == 0){};
 					Motor_right_forward(0);Motor_left_forward(0);
 
-					if (DEBUG) {USART_transmitByte(52);delay_ms(delay_debug);} //Print 4
+					if (DEBUG) {USART_transmitByte(52);delay_ms_meu(delay_debug);} //Print 4
 
 				}
 				if (DEBUG) USART_transmitByte(53); //Print 4
@@ -346,19 +346,19 @@ char es_negre(){
 
 		move_robot(velocitat/2,-velocitat/2,FORWARD,5); //Seguretat
 		sharpIR=readADC(4);
-		delay_ms(10);
+		delay_ms_meu(10);
 		if (sharpIR<threshold) is_black=1;
 		move_robot(velocitat/2,-velocitat/2,FORWARD,5);
 		sharpIR=readADC(4);
-		delay_ms(10);
+		delay_ms_meu(10);
 		if (sharpIR<threshold) is_black=1;
 		move_robot(-velocitat/2,velocitat/2,FORWARD,15);
 		sharpIR=readADC(4);
-		delay_ms(10);
+		delay_ms_meu(10);
 		if (sharpIR<threshold) is_black=1;
 		move_robot(-velocitat/2,velocitat/2,FORWARD,5);
 		sharpIR=readADC(4);
-		delay_ms(10);
+		delay_ms_meu(10);
 		if (sharpIR<threshold) is_black=1;
 		move_robot(velocitat/2,-velocitat/2,FORWARD,10); //Tornem al mig
 		return is_black;

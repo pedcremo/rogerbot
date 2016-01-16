@@ -27,7 +27,7 @@ extern volatile char start;
 //Main functions
 void init_ports(void);
 void load_eeprom_settings(void);
-void delay_ms(int ms);
+void delay_ms_meu(int ms);
 void rescue_state_machine(void);
 void rescue_state_machine_2015(void);
 

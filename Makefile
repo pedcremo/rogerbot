@@ -1,6 +1,6 @@
 # Processor frequency.
-#     This will define a symbol, F_CPU, in all source code files equal to the 
-#     processor frequency. You can then use this symbol in your source code to 
+#     This will define a symbol, F_CPU, in all source code files equal to the
+#     processor frequency. You can then use this symbol in your source code to
 #     calculate timings. Do NOT tack on a 'UL' at the end, this will be done
 #     automatically to create a 32-bit value in your source code.
 #     Typical values are:
@@ -24,9 +24,9 @@ AVRDUDE_DEVICE ?= m168
 CFLAGS=-g -Wall -mcall-prologues -mmcu=$(MCU) $(DEVICE_SPECIFIC_CFLAGS) -Os
 CFLAGS += $(CDEFS)
 CC=avr-gcc
-OBJ2HEX=avr-objcopy 
-#LDFLAGS=-Wl,-gc-sections -lpololu_$(DEVICE) -Wl,-relax
+OBJ2HEX=avr-objcopy
 LDFLAGS=-Wl,-gc-sections -Wl,-relax
+#LDFLAGS=-Wl,-gc-sections -lpololu_$(DEVICE) -Wl,-relax
 
 PORT ?= /dev/ttyACM0
 AVRDUDE=avrdude
@@ -39,9 +39,14 @@ SRC = $(TARGET).c USART_and_telemetry.c Motor.c PIDfollower.c
 # Object files directory
 #     To put object files in current directory, use a dot (.), do NOT make
 #     this an empty or blank macro!
+
+# List C++ source files here. (C dependencies are automatically generated.)
+#CPPSRC = PololuQTRSensors.cpp
+
 OBJDIR = .
 # Define all object files.
-OBJECT_FILES = $(SRC:%.c=$(OBJDIR)/%.o)  
+#OBJECT_FILES = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cpp=$(OBJDIR)/%.o)
+OBJECT_FILES = $(SRC:%.c=$(OBJDIR)/%.o)
 
 
 all: $(TARGET).hex

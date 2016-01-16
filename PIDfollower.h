@@ -13,7 +13,7 @@
 void PID_line_following(int direction);
 
 //Bar sensor reading
-int PID_obtenir_errorp(void);
+uint8_t PID_obtenir_errorp(void);
 
 
 #endif
