@@ -162,7 +162,8 @@ int obtenir_errord(void)
 }
 void PID_line_following(int direction){ //0 forward,1 backwards
 	int errort=0;
-
+	uint8_t Kp_aux=Kp;
+	int derivatiu_aux=0;
 	int speed_M1=0;
 	int speed_M2=0;
 	int proporcional = PID_obtenir_errorp();
@@ -170,9 +171,16 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 	int velocitat_incrementada=velocitat+turbo;
 
 	if (velocitat_incrementada >254) velocitat_incrementada=255;
-	//if (proporcional==1 || proporcional==-1) proporcional=0; //Little HACK
+	if (proporcional==1 || proporcional==-1) {
+			//proporcional=0; //Little HACK
+			Kp_aux=Kp/2;
+			derivatiu_aux=derivatiu/3;
+	}else{
+			Kp_aux=Kp;
+			derivatiu_aux=derivatiu;
+	}
 
-	errort = (proporcional*Kp) + derivatiu;
+	errort = (proporcional*Kp_aux) + derivatiu_aux;
 
 	/*if (proporcional>=0x09 || proporcional<=-0x09) cont_corba+=1;
 	else cont_corba=0;*/
@@ -182,7 +190,7 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 	else if(errort < - velocitat_incrementada)
 		errort = - velocitat_incrementada;
 
-	if(errort>0){
+	if(errort>=0){
 		speed_M1=velocitat_incrementada - errort;
 		speed_M2=velocitat_incrementada;
 		//if (cont_corba>=3) Motor_right_reverse(speed_M2);
@@ -199,7 +207,8 @@ void PID_line_following(int direction){ //0 forward,1 backwards
     			Motor_left_reverse(speed_M1);     //Motor esquerre.
 		}
 
-	}else if(errort<0){
+	//}else if(errort<0){
+	}else{
 		speed_M1=velocitat_incrementada;
 		speed_M2=velocitat_incrementada+errort;
 		//if (cont_corba>=3) Motor_left_reverse(speed_M1);
@@ -210,13 +219,13 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 			if (speed_M2<=0){
     				Motor_left_reverse((speed_M1*curve_correction)/100);     //Motor esquerre.
 			}else{
-				Motor_left_forward(speed_M2);     //Motor esquerre.
+						Motor_left_forward(speed_M2);     //Motor esquerre.
 			}
 		}else{
 			Motor_left_reverse(speed_M1);     //Motor esquerre.
     			Motor_right_reverse(speed_M2);     //Motor dret.
 		}
-	}else{
+	}/*else{
 
 		speed_M1=velocitat_incrementada;
 		speed_M2=velocitat_incrementada;
@@ -227,14 +236,14 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 			Motor_left_reverse(speed_M2);
         		Motor_right_reverse(speed_M1);
 		}
-	}
+	}*/
 	if (telemetry_enabled){
 			USART_transmitByte(proporcional >> 8);
 			USART_transmitByte(proporcional & 0xFF);
 			USART_transmitByte(derivatiu >> 8);
 			USART_transmitByte(derivatiu & 0xFF);
-			USART_transmitByte(speed_M2);
-			USART_transmitByte(speed_M1);
+			USART_transmitByte(speed_M2);//Motor esquerre
+			USART_transmitByte(speed_M1);//Motor dret
 
 	}
 
