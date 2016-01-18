@@ -1,6 +1,8 @@
 Robot velocista (linetracker or line follower) Rogerbot
 -------------------------------------------------------
-More info http://pere.bocairent.net/wiki/index.php/Experiments_i_apunts_rob%C3%B2tica#Rogerbot_2:_Robot_seguidor_de_l.C3.ADnia_i_altres_prop.C3.B2sits
+More info:
+ http://pere.bocairent.net/wiki/index.php/Experiments_i_apunts_rob%C3%B2tica#Rogerbot_2:_Robot_seguidor_de_l.C3.ADnia_i_altres_prop.C3.B2sits
+
 With this robot we went to desafio robot 2015 contest.
 It contains some design flaws.
 
@@ -28,13 +30,16 @@ Videos de Youtube del robot en funcionament
 ---------------------------------------------
 
 Seguiment de línia https://www.youtube.com/watch?v=3Vng8f2Hjuk
+
 Seguiment de línia https://www.youtube.com/watch?v=mVdQlziA4T0
+
 Seguiment de línia https://www.youtube.com/watch?v=nVbRpd_NfEo
+
 Prova de rescat https://www.youtube.com/watch?v=M8LMy-KG1w0  
+
 Prova de rescat https://www.youtube.com/watch?v=BnAOamVrsOA
 
 TODO
 ----
 Lectures digitals o analògiques dels sensors?
 Hi ha gran diferència?
-Com fan les lectures digitals amb la llibreria de pololu?
