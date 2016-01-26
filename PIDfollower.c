@@ -171,7 +171,7 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 	int velocitat_incrementada=velocitat+turbo;
 
 	if (velocitat_incrementada >254) velocitat_incrementada=255;
-	if (proporcional==1 || proporcional==-1) {
+	if (proporcional==1 || proporcional==-1 || proporcional==0) {
 			//proporcional=0; //Little HACK
 			Kp_aux=Kp/2;
 			derivatiu_aux=derivatiu/3;
@@ -181,7 +181,7 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 	}
 
 	errort = (proporcional*Kp_aux) + derivatiu_aux;
-
+	//errort = (proporcional*Kp) + derivatiu;
 	/*if (proporcional>=0x09 || proporcional<=-0x09) cont_corba+=1;
 	else cont_corba=0;*/
 
@@ -196,7 +196,7 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 		//if (cont_corba>=3) Motor_right_reverse(speed_M2);
 		//else
 		if (direction==0){//FORWARD
-    			Motor_left_forward(speed_M2);     //Motor esquerre.
+    			Motor_left_forward(speed_M2);     //Motor esquerra.
 			if (speed_M1<=0){
 				Motor_right_reverse((speed_M2*curve_correction)/100);     //Motor dret.
 			}else{

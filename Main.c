@@ -29,7 +29,7 @@
 /***** Variables globals ********/
 //Constants Regulador PD 30:1 HP
 //uint8_t cont_corba=0;
-uint8_t Kp = 44;  //48 lf 18 pots
+uint8_t Kp = 51;  //48 lf 18 pots
 uint8_t  Kd = 48;//225 lf 28 pots multiplicador 100
 volatile uint8_t velocitat = 198; //225 lf 95 pots max 255
 uint8_t telemetry_enabled = 0; //1 enabled, 0 disabled
@@ -68,6 +68,7 @@ int main( void )
 		pulsador = PINB & (1<<PULSADOR);
     		if (start==1) break;
 	}
+	delay_ms(5000);//Esperem 5 segons després de la polsació boto
 
 	voltage = readADC(6); //Returns analog value that multiplied by 0,004887585533 * 2  equals voltage
 
