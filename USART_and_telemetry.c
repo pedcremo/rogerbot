@@ -5,11 +5,15 @@
 #include <avr/io.h>
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
-
+#
+#include <stdio.h>
 #include "USART_and_telemetry.h"
 #include "Main.h"
 #include "PIDfollower.h"
+#include "hmc5883l/hmc5883l.h"
 
+#include "math.h"
+#include <stdlib.h>
 //declare buffer
 u8buf buf;
 
@@ -207,7 +211,16 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					move_robot(velocitat,velocitat,FORWARD,450);
 					buf->buffer[1]='o';
 					buf->buffer[0]='.';
-
+				}else if(buf->buffer[0]=='c'){ //Compass hmc5883l
+					buf->index=36;
+					int heading=get_heading_hmc5883l();
+					buf->index=4;
+					buf->buffer[4]='0'+(heading/100);
+					buf->buffer[3]='0'+((heading/10) % 10);
+					buf->buffer[2]='0'+(heading % 10);
+					buf->buffer[1]='z';
+					buf->buffer[0]='.';
+					//sprintf(buf->buffer,".z%d\n",heading);
 
 				}else if(buf->buffer[0]=='t'){ //Send Bar test sensor reading
 					buf->index=3;

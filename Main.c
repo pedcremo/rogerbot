@@ -5,13 +5,13 @@
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
 
-
 //My rogerbot libraries
 #include "Main.h"
 #include "Motor.h"
 #include "PIDfollower.h"
 #include "USART_and_telemetry.h"
-
+#include "hmc5883l/hmc5883l.h"  //Digital Compass
+#include "PIDcompass.h"
 
 //Local macros
 #define BV(bit)			(1 << bit)
@@ -31,14 +31,14 @@
 //uint8_t cont_corba=0;
 uint8_t Kp = 51;  //48 lf 18 pots
 uint8_t  Kd = 48;//225 lf 28 pots multiplicador 100
-volatile uint8_t velocitat = 198; //225 lf 95 pots max 255
+volatile uint8_t velocitat = 88; //225 lf 95 pots max 255
 uint8_t telemetry_enabled = 0; //1 enabled, 0 disabled
 //V 7.39 vel 100 kp 20 kd 700 9,2 segons pista taller rogerbot1
 char strategy = 'a'; //a -> By default line following using interrupts, b -> pots rescue
 uint8_t curve_correction = 0; //0 Means we brake internal wheel, other value means we change wheel direction backward a percentage of the max speed
 volatile char start=0;
 volatile uint8_t turbo = 0; //Increment de la velocitat que posem en certs moments
-
+uint16_t compass_direction_to_follow = 0;
 /* No globals */
 uint8_t DEBUG = 0; //1 enabled, 0 disabled
 
@@ -58,7 +58,8 @@ int main( void )
 	// We transmit 32bits in 0,27 ms
 	USART_init(); //Enables usart comunication with rogerbot using  interrupts (bluetooth mainly)
 	init_ADC(); //Set up ADC
-  	sei(); //As we use interruptions for USART communication we enable them
+	//hmc5883l_init();//Enable compass
+	sei(); //As we use interruptions for USART communication we enable them
 
 	//Load Rogerbot settings from eeprom (speed, kp, kd ...)
 	load_eeprom_settings();
@@ -96,15 +97,44 @@ int main( void )
 		adjust_speed_to_a_threshold(voltage,770);
 
 		rescue_state_machine_2015();
+
 	}else{
-		Motor_acceleracio_progressiva();
-		inicializar_timer1();// We use the timer also as millis counter in other strategies
+		//Motor_acceleracio_progressiva();
+		//inicializar_timer1();// We use the timer also as millis counter in other strategies
+		prova_compass_direction();
 	}
 
 	while ( 1 )
 	{
+
 	}
 	return 0;
+}
+void prova_compass_direction(){
+	compass_direction_to_follow=get_heading_hmc5883l();
+
+	uint16_t contador=0;
+  uint8_t i=0;
+	for (i=0;i<=30;i++){
+		if (get_heading_hmc5883l()-compass_direction_to_follow==0){
+			contador+=1;
+		}else{
+			compass_direction_to_follow=get_heading_hmc5883l();
+		}
+	}
+
+  contador=0;
+	while ( 1 )
+	{
+		if (contador>150)
+			PID_compass_following(1);
+		else
+			PID_compass_following(0);
+
+		delay_ms(7);//Cada 6.26 ms minim temps per fer lectura
+		contador+=1;
+		if (contador>=300) contador=0;
+	}
 }
 
 void adjust_speed_to_a_threshold(int current_read,int desired_read){

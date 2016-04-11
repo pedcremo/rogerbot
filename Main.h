@@ -23,6 +23,7 @@ extern uint8_t telemetry_enabled;
 extern uint8_t curve_correction;
 extern char strategy;
 extern volatile char start;
+extern uint16_t compass_direction_to_follow;
 
 //Main functions
 void init_ports(void);
@@ -37,6 +38,7 @@ void rescue_state_machine_2015(void);
 void inicializar_timer1(void);
 //int obtenir_errord(void);
 //void line_following(int direction);
+void prova_compass_direction(void);
 
 //ADC functions
 void init_ADC(void);

@@ -3,11 +3,12 @@
 
 /*************************************************/
 /*** Buffer used for UART communications       ***/
-#define BUF_SIZE 25
+#define BUF_SIZE 45
 //type definition of buffer structure
 typedef struct{
 		//Array of chars
-		uint8_t buffer[BUF_SIZE];
+		//uint8_t buffer[BUF_SIZE];
+		char buffer[BUF_SIZE];
 		//array element index
 		uint8_t index;
 }u8buf;
