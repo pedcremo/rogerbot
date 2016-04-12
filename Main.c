@@ -98,6 +98,10 @@ int main( void )
 
 		rescue_state_machine_2015();
 
+	//Desafio robot 2016
+  }else if (strategy=='e'){
+			rescue_state_machine_2016();
+
 	}else{
 		//Motor_acceleracio_progressiva();
 		//inicializar_timer1();// We use the timer also as millis counter in other strategies
@@ -231,6 +235,84 @@ void rescue_state_machine(){
 		_delay_us(400);
 	}
 }
+
+void rescue_state_machine_2016(){
+
+		rescue_estat_actual=0;
+		velocitat=120;
+		int pots_rescatats=0;
+
+
+		while (1){
+			switch(rescue_estat_actual){
+				case 0: //Estat solament executat a l'inici per fer que el robot trobe la linia
+
+					if (finding_line(velocitat,velocitat,FORWARD)==0) rescue_estat_actual=0;
+					else {
+						move_robot(velocitat,velocitat,200); //Moure robot avant 200 ms
+						while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};//Girem a esquerre fins trobar linia
+						rescue_estat_actual=1;
+					}
+					break;
+
+				case 1: //Cada vegada que emprenen la recta dels creuaments parem en el creuament marcat per pots_rescatats+1
+
+					follow_line_until_crossroad(pots_rescatats+1);
+					rescue_estat_actual = 2;
+					break;
+
+				case 2: // Col·loquem robot perpendicular al encreuament
+					move_robot(velocitat,-velocitat,200);
+					while (finding_line(velocitat/2,-velocitat/2,FORWARD) == 0){};//Girem a dreta fins trobar linia
+					int proporcional = 0;
+					while (proporcional!=9 || proporcional != -9){ //Mentres no estiguem fora de linia
+						proporcional=PID_obtenir_errorp();
+						PID_line_following(FORWARD); //Seguiment de linia Forward
+						_delay_ms(1);
+					};
+					rescue_estat_actual=3;
+					break;
+
+				case 3://Recorregut de 50 cm des de que acaba la linia de pot fins que deixem pot blanc en primera franja negra o negre en la segona i tornem per la linia lateral guia al punt e partida
+					int lectures_negre=0;
+					int lectures_blanc=0;
+					int COLOR=0; //0 blanc,1 negre
+					while (finding_line(velocitat,velocitat,FORWARD) == 0){
+						_delay_ms(1);
+						if (es_negre()){
+							lectures_negre+=1;
+						}else{
+							lectures_blanc+=1;
+						}
+					}
+					if (lectures_negre>lectures_blanc){
+						COLOR=1;//NEGRE
+						rescue_estat_actual=5; //Pot negre
+						while(finding_line(velocitat,velocitat,FORWARD)!=0){}//Mentres estem en zona negra
+						while(finding_line(velocitat,velocitat,FORWARD)==0){}//Mentres estem en zona blanca
+
+					}else{
+						rescue_estat_actual=4; //Pot blanc
+					}
+					pots_rescatats+=1;
+					move_robot(-velocitat,-velocitat,200); //Enrere
+					move_robot(velocitat,-velocitat,300); //Gira 90 graus
+					while (finding_line(velocitat,velocitat,FORWARD) == 0){}; //Avancem fins linia guia lateral
+					if (COLOR==0){ //Si pot es blanc
+						follow_line_until_crossroad(1);
+					}else{
+						follow_line_until_crossroad(2);
+					}
+					rescue_estat_actual=1;
+					break;
+				default:
+					break;
+			}
+		}
+
+}
+
+
 void rescue_state_machine_2015(){
 	char dir_robot=0; //0 Cap endins ,1 cap a fora
 	char lectura_pot=0;
@@ -369,13 +451,13 @@ char es_negre(){
 	int sharpIR=200;
  	int threshold=17; //Below this value is black
 	sharpIR=readADC(4); //Read IR sensor.Be sure to be less than 3cm from target
-	char is_black=0; //No by default
+	//char is_black=0; //No by default
 
 	if (sharpIR<threshold){
 		return 1; //Black
 	}else{ //Could be white or black but we are not aligned properly
 
-		move_robot(velocitat/2,-velocitat/2,FORWARD,5); //Seguretat
+		/*move_robot(velocitat/2,-velocitat/2,FORWARD,5); //Seguretat
 		sharpIR=readADC(4);
 		delay_ms(10);
 		if (sharpIR<threshold) is_black=1;
@@ -392,7 +474,8 @@ char es_negre(){
 		delay_ms(10);
 		if (sharpIR<threshold) is_black=1;
 		move_robot(velocitat/2,-velocitat/2,FORWARD,10); //Tornem al mig
-		return is_black;
+		*/
+		return 0; //White
 	}
 }
 
@@ -417,6 +500,34 @@ int finding_line(int speedM1, int speedM2, int direction){
 				return 1;
 			}
 	}
+}
+
+//Trobem creuament i seguim fins que eixim d'ell
+void follow_line_until_crossroad(int crossroad_number){
+	int crossroads_found=0;
+	int proporcional = 0;
+    int begining_crossroad_found=0;
+	while(1){
+		proporcional=PID_obtenir_errorp();
+		//Si topem encreumane
+		if ( (proportional == 0 || proportional == 1 || proportional == -1) && (_SENSOR_D1 || _SENSOR_D2)){
+			begining_crossroad_found=1;
+		}else if (proporcional==9 || proporcional == -9){
+			break;
+		}else{
+			if (beginning_crossroad_found){
+				crossroads_found+=1;
+				if (crossroads_found == crossroad_number){
+					break; //Eixim del bucle
+				}
+			}
+			begining_crossroad_found=0;
+		}
+		PID_line_following(FORWARD); //Forward
+		_delay_ms(1);
+	}
+
+	rescue_estat_actual=2;
 }
 
 void follow_line_fast(void){
