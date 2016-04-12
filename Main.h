@@ -31,7 +31,7 @@ void load_eeprom_settings(void);
 void delay_ms(int ms);
 void rescue_state_machine(void);
 void rescue_state_machine_2015(void);
-
+void rescue_state_machine_2016(void);
 
 //LineFollowing functions
 //int obtenir_errorp(void);
@@ -48,6 +48,7 @@ uint16_t readADC(uint8_t channel);
 void adjust_speed_to_a_threshold(int current_read,int desired_read);
 char es_negre(void);
 int finding_line(int speedM1,int speedM2, int direction); //Return 0 if not found , 1 if found
+void follow_line_until_crossroad(int crossroad_number);
 void follow_line_fast(void); //State 1
 void move_robot(int speedM1,int speedM2,int direction_,int milliseconds_);
 

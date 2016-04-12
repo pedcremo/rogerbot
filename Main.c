@@ -241,7 +241,8 @@ void rescue_state_machine_2016(){
 		rescue_estat_actual=0;
 		velocitat=120;
 		int pots_rescatats=0;
-
+		int lectures_negre=0;
+		int lectures_blanc=0;
 
 		while (1){
 			switch(rescue_estat_actual){
@@ -249,7 +250,7 @@ void rescue_state_machine_2016(){
 
 					if (finding_line(velocitat,velocitat,FORWARD)==0) rescue_estat_actual=0;
 					else {
-						move_robot(velocitat,velocitat,200); //Moure robot avant 200 ms
+						move_robot(velocitat,velocitat,FORWARD,200); //Moure robot avant 200 ms
 						while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};//Girem a esquerre fins trobar linia
 						rescue_estat_actual=1;
 					}
@@ -262,7 +263,7 @@ void rescue_state_machine_2016(){
 					break;
 
 				case 2: // Col·loquem robot perpendicular al encreuament
-					move_robot(velocitat,-velocitat,200);
+					move_robot(velocitat,-velocitat,FORWARD,200);
 					while (finding_line(velocitat/2,-velocitat/2,FORWARD) == 0){};//Girem a dreta fins trobar linia
 					int proporcional = 0;
 					while (proporcional!=9 || proporcional != -9){ //Mentres no estiguem fora de linia
@@ -274,8 +275,8 @@ void rescue_state_machine_2016(){
 					break;
 
 				case 3://Recorregut de 50 cm des de que acaba la linia de pot fins que deixem pot blanc en primera franja negra o negre en la segona i tornem per la linia lateral guia al punt e partida
-					int lectures_negre=0;
-					int lectures_blanc=0;
+					lectures_negre=0;
+					lectures_blanc=0;
 					int COLOR=0; //0 blanc,1 negre
 					while (finding_line(velocitat,velocitat,FORWARD) == 0){
 						_delay_ms(1);
@@ -295,8 +296,8 @@ void rescue_state_machine_2016(){
 						rescue_estat_actual=4; //Pot blanc
 					}
 					pots_rescatats+=1;
-					move_robot(-velocitat,-velocitat,200); //Enrere
-					move_robot(velocitat,-velocitat,300); //Gira 90 graus
+					move_robot(-velocitat,-velocitat,BACKWARD,200); //Enrere
+					move_robot(velocitat,-velocitat,FORWARD,300); //Gira 90 graus
 					while (finding_line(velocitat,velocitat,FORWARD) == 0){}; //Avancem fins linia guia lateral
 					if (COLOR==0){ //Si pot es blanc
 						follow_line_until_crossroad(1);
@@ -506,12 +507,12 @@ int finding_line(int speedM1, int speedM2, int direction){
 void follow_line_until_crossroad(int crossroad_number){
 	int crossroads_found=0;
 	int proporcional = 0;
-    int begining_crossroad_found=0;
+    int beginning_crossroad_found=0;
 	while(1){
 		proporcional=PID_obtenir_errorp();
 		//Si topem encreumane
-		if ( (proportional == 0 || proportional == 1 || proportional == -1) && (_SENSOR_D1 || _SENSOR_D2)){
-			begining_crossroad_found=1;
+		if ( (proporcional == 0 || proporcional == 1 || proporcional == -1) && (_SENSOR_D1 || _SENSOR_D2)){
+			beginning_crossroad_found=1;
 		}else if (proporcional==9 || proporcional == -9){
 			break;
 		}else{
@@ -521,7 +522,7 @@ void follow_line_until_crossroad(int crossroad_number){
 					break; //Eixim del bucle
 				}
 			}
-			begining_crossroad_found=0;
+			beginning_crossroad_found=0;
 		}
 		PID_line_following(FORWARD); //Forward
 		_delay_ms(1);
