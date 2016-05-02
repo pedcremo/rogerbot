@@ -31,10 +31,10 @@
 //uint8_t cont_corba=0;
 uint8_t Kp = 51;  //48 lf 18 pots
 uint8_t  Kd = 48;//225 lf 28 pots multiplicador 100
-volatile uint8_t velocitat = 88; //225 lf 95 pots max 255
+volatile uint8_t velocitat = 100; //225 lf 95 pots max 255
 uint8_t telemetry_enabled = 0; //1 enabled, 0 disabled
 //V 7.39 vel 100 kp 20 kd 700 9,2 segons pista taller rogerbot1
-char strategy = 'a'; //a -> By default line following using interrupts, b -> pots rescue
+char strategy = 'e'; //a -> By default line following using interrupts, b -> pots rescue
 uint8_t curve_correction = 0; //0 Means we brake internal wheel, other value means we change wheel direction backward a percentage of the max speed
 volatile char start=0;
 volatile uint8_t turbo = 0; //Increment de la velocitat que posem en certs moments
@@ -100,7 +100,7 @@ int main( void )
 
 	//Desafio robot 2016
   }else if (strategy=='e'){
-			rescue_state_machine_2016();
+		rescue_state_machine_2016();
 
 	}else{
 		//Motor_acceleracio_progressiva();
@@ -243,41 +243,71 @@ void rescue_state_machine_2016(){
 		int pots_rescatats=0;
 		int lectures_negre=0;
 		int lectures_blanc=0;
+		int rescue_old_estat=9;
+		int proporcional = 0;
+		int tics_fora = 0;
 
 		while (1){
+			if (DEBUG && (rescue_estat_actual != rescue_old_estat)){ //DEBUG
+					USART_transmitByte(83); //S
+					USART_transmitByte(61); //=
+					USART_transmitByte(48+rescue_estat_actual);
+					USART_transmitByte(32); //Space
+					USART_transmitByte(13); //Carriage return
+			}
+			rescue_old_estat=rescue_estat_actual;
+
 			switch(rescue_estat_actual){
 				case 0: //Estat solament executat a l'inici per fer que el robot trobe la linia
 
 					if (finding_line(velocitat,velocitat,FORWARD)==0) rescue_estat_actual=0;
 					else {
-						move_robot(velocitat,velocitat,FORWARD,200); //Moure robot avant 200 ms
-						while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};//Girem a esquerre fins trobar linia
 						rescue_estat_actual=1;
 					}
-					break;
 
-				case 1: //Cada vegada que emprenen la recta dels creuaments parem en el creuament marcat per pots_rescatats+1
+					break;
+				case 1: //Robot encarat en la linia recta on conflueixen tots els encreuaments
+					//Motor_right_forward(0);Motor_left_forward(0);//STOP
+					//delay_ms(300);
+					move_robot(velocitat,velocitat,FORWARD,240); //Moure robot avant 200 ms
+					while (finding_line(-velocitat/5,-velocitat/2,FORWARD) == 0){};//Girem a esquerre fins trobar linia
+					rescue_estat_actual=2;
+					break;
+				case 2: //BUG PROVEN. Cada vegada que emprenen la recta dels creuaments parem en el creuament marcat per pots_rescatats+1
 
 					follow_line_until_crossroad(pots_rescatats+1);
-					rescue_estat_actual = 2;
+					rescue_estat_actual = 3;
 					break;
 
-				case 2: // Col·loquem robot perpendicular al encreuament
-					move_robot(velocitat,-velocitat,FORWARD,200);
-					while (finding_line(velocitat/2,-velocitat/2,FORWARD) == 0){};//Girem a dreta fins trobar linia
-					int proporcional = 0;
-					while (proporcional!=9 || proporcional != -9){ //Mentres no estiguem fora de linia
+				case 3: // Col·loquem robot perpendicular al encreuament i seguim linia fins final
+
+					proporcional=PID_obtenir_errorp();
+					move_robot(-velocitat,velocitat,FORWARD,100);
+					if (DEBUG) {USART_transmitByte(48);_delay_us(150);} //Print 0
+					while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};//Girem a dreta fins trobar linia
+					if (DEBUG) {USART_transmitByte(49);_delay_us(150);} //Print 1
+					while (proporcional != 9 || proporcional != -9){ //Mentres no estiguem fora de linia
 						proporcional=PID_obtenir_errorp();
+
+						if (proporcional == 9 || proporcional == -9) {
+							tics_fora+=1;
+							if (tics_fora>25) break;
+						}
 						PID_line_following(FORWARD); //Seguiment de linia Forward
 						_delay_ms(1);
+						if (DEBUG) {USART_transmitByte(50);_delay_us(150);} //Print 2
+						//if (DEBUG) {USART_transmitByte(50);delay_ms(1);} //Print 2
 					};
-					rescue_estat_actual=3;
+					tics_fora=0;
+					rescue_estat_actual=4;
 					break;
 
-				case 3://Recorregut de 50 cm des de que acaba la linia de pot fins que deixem pot blanc en primera franja negra o negre en la segona i tornem per la linia lateral guia al punt e partida
+				case 4://Recorregut de 50 cm des de que acaba la linia de pot fins que deixem pot blanc en primera franja negra o negre en la segona i tornem per la linia lateral guia al punt e partida
+
 					lectures_negre=0;
 					lectures_blanc=0;
 					int COLOR=0; //0 blanc,1 negre
+					//move_robot(velocitat,velocitat,FORWARD,300);
 					while (finding_line(velocitat,velocitat,FORWARD) == 0){
 						_delay_ms(1);
 						if (es_negre()){
@@ -286,27 +316,39 @@ void rescue_state_machine_2016(){
 							lectures_blanc+=1;
 						}
 					}
-					if (lectures_negre>lectures_blanc){
+					if (lectures_negre>lectures_blanc){ //Si pot negre
 						COLOR=1;//NEGRE
-						rescue_estat_actual=5; //Pot negre
+						if (DEBUG) {USART_transmitByte(49);_delay_us(150);} //Print 1
 						while(finding_line(velocitat,velocitat,FORWARD)!=0){}//Mentres estem en zona negra
 						while(finding_line(velocitat,velocitat,FORWARD)==0){}//Mentres estem en zona blanca
 
-					}else{
-						rescue_estat_actual=4; //Pot blanc
+					}else{ //Si blanc parem
+						if (DEBUG) {USART_transmitByte(48);_delay_us(150);} //Print 0
+						//while(1) {Motor_right_forward(0);Motor_left_forward(0);}//STOP
 					}
+
 					pots_rescatats+=1;
-					move_robot(-velocitat,-velocitat,BACKWARD,200); //Enrere
-					move_robot(velocitat,-velocitat,FORWARD,300); //Gira 90 graus
+
+					//move_robot(velocitat,-velocitat,FORWARD,300); //Gira 90 graus
+					if (DEBUG) {USART_transmitByte(50);_delay_us(150);} //Print 2
+					move_robot(-velocitat/2,velocitat/2,FORWARD,230); //90 graus
+					//while (finding_line(-velocitat/2,velocitat/2,FORWARD) != 0){};//Girem a dreta fins trobar blanc
+					if (DEBUG) {USART_transmitByte(51);_delay_us(150);} //Print 3
 					while (finding_line(velocitat,velocitat,FORWARD) == 0){}; //Avancem fins linia guia lateral
+					if (DEBUG) {USART_transmitByte(52);_delay_us(150);} //Print 4
 					if (COLOR==0){ //Si pot es blanc
 						follow_line_until_crossroad(1);
+						if (DEBUG) {USART_transmitByte(53);_delay_us(150);} //Print 5
 					}else{
 						follow_line_until_crossroad(2);
+						if (DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
 					}
-					rescue_estat_actual=1;
+					rescue_estat_actual=2;
 					break;
 				default:
+					//move_robot(0,0,FORWARD,300); //PARA
+					Motor_right_forward(0);
+					Motor_left_forward(0);
 					break;
 			}
 		}
@@ -503,32 +545,65 @@ int finding_line(int speedM1, int speedM2, int direction){
 	}
 }
 
-//Trobem creuament i seguim fins que eixim d'ell
+//Trobem creuament X i parem
 void follow_line_until_crossroad(int crossroad_number){
 	int crossroads_found=0;
 	int proporcional = 0;
     int beginning_crossroad_found=0;
+	int times_out=0;//Vegades fora
+	int lectures_seguides_creuament=0;
+
 	while(1){
 		proporcional=PID_obtenir_errorp();
-		//Si topem encreumane
-		if ( (proporcional == 0 || proporcional == 1 || proporcional == -1) && (_SENSOR_D1 || _SENSOR_D2)){
-			beginning_crossroad_found=1;
+
+		//Si topem encreumant. Ho sabem pq estem en linia i _SENSOR_D1 i D2 activats al mateix temps
+		if ( (proporcional > -9 && proporcional <9) && (_SENSOR_D1 && _SENSOR_D2)){
+			times_out=0;
+			lectures_seguides_creuament+=1;
+			if (lectures_seguides_creuament>5) beginning_crossroad_found=1;
+			if (DEBUG) {USART_transmitByte(56);_delay_us(150);} //Print 8
+		//Estem fora de linia
 		}else if (proporcional==9 || proporcional == -9){
-			break;
-		}else{
-			if (beginning_crossroad_found){
+			lectures_seguides_creuament=0;
+			times_out+=1;
+			if (beginning_crossroad_found == 1){
+				if (DEBUG) {USART_transmitByte(51);_delay_us(150);} //Print 3
+				while (finding_line(-velocitat/3,velocitat/3,FORWARD) == 0){};//Girem a dreta fins trobar linia
 				crossroads_found+=1;
+				beginning_crossroad_found=0;
 				if (crossroads_found == crossroad_number){
+					if (DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
 					break; //Eixim del bucle
 				}
 			}
-			beginning_crossroad_found=0;
+			if (DEBUG) {USART_transmitByte(52);_delay_us(150);} //Print 4
+			if (times_out>550) break; //Si estem fora mes del compte
+		//Estem en línia pero _SENSOR_D1 i D2 no estan activats al mateix temps
+		}else{
+
+			if (beginning_crossroad_found){
+				lectures_seguides_creuament=0;
+				_delay_us(250);
+				proporcional=PID_obtenir_errorp();
+				if  (proporcional>-9 && proporcional < 9){ //Dins linia
+					beginning_crossroad_found=0;
+					crossroads_found+=1;
+					while (finding_line(-velocitat/3,velocitat/3,FORWARD) == 0){};//Girem a dreta fins trobar linia
+					if (DEBUG) {USART_transmitByte(55);_delay_us(150);} //Print 7
+				}
+				if (DEBUG) {USART_transmitByte(53);_delay_us(150);} //Print 5
+				if (crossroads_found == crossroad_number){
+					if (DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
+					break; //Eixim del bucle
+				}
+			}
 		}
 		PID_line_following(FORWARD); //Forward
-		_delay_ms(1);
+		_delay_us(850);
+		//_delay_ms(1);
 	}
 
-	rescue_estat_actual=2;
+	//rescue_estat_actual=2;
 }
 
 void follow_line_fast(void){

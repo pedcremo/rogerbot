@@ -5,7 +5,7 @@
 #include <avr/io.h>
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
-#
+
 #include <stdio.h>
 #include "USART_and_telemetry.h"
 #include "Main.h"
@@ -208,7 +208,7 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 				}else if(buf->buffer[0]=='j'){ //Proves
 					buf->index=1;
 					//M1_forward(velocitat);M2_forward(velocitat);
-					move_robot(velocitat,velocitat,FORWARD,450);
+					move_robot(-velocitat,velocitat,FORWARD,170);
 					buf->buffer[1]='o';
 					buf->buffer[0]='.';
 				}else if(buf->buffer[0]=='c'){ //Compass hmc5883l
