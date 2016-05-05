@@ -13,7 +13,7 @@ First of all we should install the following packages
 sudo apt-get install gcc-avr binutils-avr avr-libc avrdude"
 </pre>
 
-Aquests paquets són el compilador creuar per a microcontroladors AVR, utilitats de link, la llibreria de C per a estos microcontroladors i el programa per transferir els binaris a la pròpia EEPROM del microcontrolador.
+These packages are the crosscompiler for AVR microcontrollers, link utilities, avr C library and a program to transfer binaries to the EEPROM microcontroller.
 
 To compile:
 <pre>make</pre>
@@ -21,25 +21,25 @@ To compile:
 To compile and tranfer the binary to our Robot using an ISP programmer:
 <pre>make program</pre>
 
-Manualment podriem transferir el programa al microcontrolador sense fer "make program" de la següent forma:
+
+We can do it manually too without "make program". Introduce the following in the command line.
 
 "avrdude -c avrispv2 -p m328p -P /dev/ttyACM0 -U flash:w:main.hex"
 
 
-Videos de Youtube del robot en funcionament
+Youtube Robot videos at working
 ---------------------------------------------
 
-Seguiment de línia https://www.youtube.com/watch?v=3Vng8f2Hjuk
+*Line following https://www.youtube.com/watch?v=3Vng8f2Hjuk
 
-Seguiment de línia https://www.youtube.com/watch?v=mVdQlziA4T0
+*Line following https://www.youtube.com/watch?v=mVdQlziA4T0
 
-Seguiment de línia https://www.youtube.com/watch?v=nVbRpd_NfEo
+*Line following https://www.youtube.com/watch?v=nVbRpd_NfEo
 
-Prova de rescat https://www.youtube.com/watch?v=M8LMy-KG1w0  
+*Rescue contest https://www.youtube.com/watch?v=M8LMy-KG1w0  
 
-Prova de rescat https://www.youtube.com/watch?v=BnAOamVrsOA
+*Rescue contest https://www.youtube.com/watch?v=BnAOamVrsOA
 
 TODO
 ----
-Lectures digitals o analògiques dels sensors?
-Hi ha gran diferència?
+Fix lot of design flaws with a new version

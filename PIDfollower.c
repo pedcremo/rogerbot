@@ -169,6 +169,14 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 	int proporcional = PID_obtenir_errorp();
 	int derivatiu = obtenir_errord();
 	int velocitat_incrementada=velocitat+turbo;
+	//Si tilt activat
+	//clearBit(DDRB,2);//set PB2 as digital input
+	//clearBit(PORTB,2); //set PB2 LOW  (HIGH IMPEDANCE)
+	if 	(bit_is_set(PINB,2)) {
+		velocitat_incrementada=velocitat;
+	}else{
+		velocitat_incrementada=velocitat/3;
+	}
 
 	if (velocitat_incrementada >254) velocitat_incrementada=255;
 	if (proporcional==1 || proporcional==-1 || proporcional==0) {
@@ -189,6 +197,8 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 		errort = velocitat_incrementada;
 	else if(errort < - velocitat_incrementada)
 		errort = - velocitat_incrementada;
+
+
 
 	if(errort>=0){
 		speed_M1=velocitat_incrementada - errort;

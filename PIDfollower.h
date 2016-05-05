@@ -14,6 +14,7 @@ void PID_line_following(int direction);
 
 //Bar sensor reading
 int PID_obtenir_errorp(void);
-
+#define BV(bit)			(1 << bit)
+#define clearBit(byte,bit) 	(byte &= ~BV(bit))
 
 #endif
