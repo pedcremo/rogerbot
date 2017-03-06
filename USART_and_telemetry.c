@@ -5,25 +5,73 @@
 #include <avr/io.h>
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
+#include <string.h>
+
 
 #include <stdio.h>
 #include "USART_and_telemetry.h"
 #include "Main.h"
 #include "PIDfollower.h"
-#include "hmc5883l/hmc5883l.h"
+
 
 #include "math.h"
 #include <stdlib.h>
 //declare buffer
 u8buf buf;
 
-/** Section devoted to USART (serial) communications using BT **/
+char buffAux[BUF_SIZE]="";
+
+
+/** Section devoted to USART (serial) communications using BlueTooth **/
 //initialize buffer
 static void BufferInit(u8buf *buf)
 {
 		//set index to start of buffer
 		buf->index=0;
+		strcpy(buf->buffer,"");
 }
+
+static void clearBuffer(){
+	BufferInit(&buf);
+	strcpy(buffAux,"");
+}
+
+static void addTobuffer(char *t){
+	strcat(buffAux,t);  // copies string 't' to 'buffAux'
+}
+
+
+static void reverse(char *string)
+{
+	int length, c;
+	char *begin, *end, temp;
+
+	length = strlen(string);
+	begin  = string;
+	end    = string;
+
+	for (c = 0; c < length - 1; c++)
+		end++;
+
+	for (c = 0; c < length/2; c++)
+	{
+		temp   = *end;
+		*end   = *begin;
+		*begin = temp;
+
+		begin++;
+		end--;
+	}
+}
+
+static void flushBuffer(){
+		strcpy(buf.buffer,buffAux);
+		strcat(buf.buffer,"z.");
+		reverse(buf.buffer);
+		buf.index=strlen(buf.buffer);
+}
+
+
 //write to buffer routine
 static uint8_t BufferWrite(u8buf *buf, uint8_t u8data)
 {
@@ -36,48 +84,54 @@ static uint8_t BufferWrite(u8buf *buf, uint8_t u8data)
 		}
 				else return 1;
 }
+static char * convert_uint8_to_char_array(uint8_t numero){
+	char * text;
+	text = malloc(4);
+	text[0]='0'+(numero/100);
+	text[1]='0'+((numero/10) % 10);
+	text[2]='0'+(numero % 10);
+	text[3]='\0';
+	return text;
+}
+static char * convert_uint16_to_char_array(uint16_t numero){
+	char * text;
+	text = malloc(5);
+	text[0]='0';
+	text[1]='0'+(numero/100);
+	text[2]='0'+((numero/10) % 10);
+	text[3]='0'+(numero % 10);
+	text[4]='\0';
+	return text;
+}
 static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 {
 		if(buf->index>0){
-				/*buf->index--;
-				*u8data=buf->buffer[buf->index];*/
+				//Convert strategy to string. Null terminated
+				char * strategy_s;
+				strategy_s = malloc(2);
+				strategy_s[0] = strategy;
+				strategy_s[1] = '\0';
+
 				if (buf->buffer[0]=='l'){ //Load Rogerbot settings
-					uint8_t old_velocitat=velocitat;
 					load_eeprom_settings();
 
-					_delay_ms(2);
-					buf->index=20;
-					buf->buffer[20]='0'+(velocitat/100);
-					buf->buffer[19]='0'+((velocitat/10) % 10);
-					buf->buffer[18]='0'+(velocitat % 10);
-					buf->buffer[17]=',';
-
-					if (old_velocitat==0) velocitat=0;//If the robot is stopped we mantain the same state
+					clearBuffer();
+					addTobuffer(convert_uint8_to_char_array(velocitat));
 
 					if (telemetry_enabled)
-						buf->buffer[16]='1';
+						addTobuffer(",1,");
 					else
-						buf->buffer[16]='0';
+						addTobuffer(",0,");
 
-					buf->buffer[15]=',';
-					buf->buffer[14]='0'+(Kp/100);
-					buf->buffer[13]='0'+((Kp/10) % 10);
-					buf->buffer[12]='0'+(Kp % 10);
+					addTobuffer(convert_uint8_to_char_array(Kp));
+					addTobuffer(",");
+					addTobuffer(convert_uint8_to_char_array(Kd));
+					addTobuffer(",");
+					addTobuffer(strategy_s);
+					addTobuffer(",");
+					addTobuffer(convert_uint8_to_char_array(curve_correction));
+					flushBuffer();
 
-					buf->buffer[11]=',';
-					buf->buffer[10]='0'+(Kd/100);
-					buf->buffer[9]='0'+((Kd/10) % 10);
-					buf->buffer[8]='0'+(Kd % 10);
-
-					buf->buffer[7]=',';
-					buf->buffer[6]=strategy;
-
-          				buf->buffer[5]=',';
-          				buf->buffer[4]='0'+(curve_correction/100);
-          				buf->buffer[3]='0'+((curve_correction/10) % 10);
-          				buf->buffer[2]='0'+(curve_correction % 10);
-					buf->buffer[1]='z';
-					buf->buffer[0]='.';
 				}else if(buf->buffer[0]=='s'){ //Store Rogerbot settings */
 					if (buf->buffer[7]=='.'){//Si arriba el caracter final . guardem sinó no ens arrisquem
 							velocitat=buf->buffer[1];
@@ -109,82 +163,50 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					buf->buffer[1]='o';
 					buf->buffer[0]='.';
 				}else if(buf->buffer[0]=='i'){ //Read sharp infrared sensor */
-					buf->index=7;
+					//buf->index=7;
 					uint16_t sharp=readADC(4); //Read ADC4
+					clearBuffer();
 					if (sharp < 1000){
-						buf->buffer[7]='0';
-						buf->buffer[6]='0'+(sharp/100);
-						buf->buffer[5]='0'+((sharp/10) % 10);
-						buf->buffer[4]='0'+(sharp % 10);
-					}/*else{
-						buf->buffer[7]='1';buf->buffer[4]='0';
-						buf->buffer[3]='0';buf->buffer[2]='0';
-					}*/
-
-					/*buf->index=6;
-					if (es_negre()==1){
-						buf->buffer[6]='B';
-						buf->buffer[5]='L';
-						buf->buffer[4]='A';
-						buf->buffer[3]='C';
-						buf->buffer[2]='K';
-					}else{
-						buf->buffer[6]='W';
-						buf->buffer[5]='H';
-						buf->buffer[4]='I';
-						buf->buffer[3]='T';
-						buf->buffer[2]='E';
-					}*/
+						addTobuffer(convert_uint16_to_char_array(sharp));
+					}
 					if (sharp <17){
-						buf->buffer[3]='B';
-						buf->buffer[2]='L';
+						addTobuffer("BLACK");
 					}else{
-						buf->buffer[3]='W';
-						buf->buffer[2]='H';
+						addTobuffer("WHITE");
 					}
 
-					buf->buffer[1]='z';
-					buf->buffer[0]='.';
-				}else if(buf->buffer[0]=='v'){ //Read sharp infrared sensor */
-					buf->index=5;
+					flushBuffer();
+
+				}else if(buf->buffer[0]=='v'){ //Read voltage from divisor */
 					uint16_t voltage=readADC(6); //Read ADC6
+					clearBuffer();
 					if (voltage < 1000){
-						buf->buffer[5]='0';
-						buf->buffer[4]='0'+(voltage/100);
-						buf->buffer[3]='0'+((voltage/10) % 10);
-						buf->buffer[2]='0'+(voltage % 10);
+
+						addTobuffer(convert_uint16_to_char_array(voltage));
 					}else{
-						buf->buffer[5]='1';buf->buffer[4]='0';
-						buf->buffer[3]='0';buf->buffer[2]='0';
+						addTobuffer("1000");
 					}
-					buf->buffer[1]='z';
-					buf->buffer[0]='.';
+					flushBuffer();
+
 				}else if(buf->buffer[0]=='d'){ //Debugging purposes
-					buf->index=5;
-					int inc_speed=0;
+					//buf->index=5;
+					uint16_t inc_speed=0;
 					uint16_t voltage=readADC(6); //Read ADC6
+					clearBuffer();
 					if (voltage<770){
 						inc_speed = (770-voltage)/5;
-						buf->buffer[5]='+';
+						addTobuffer("+");
 					}else{
 						inc_speed = (voltage-770)/5;
-						buf->buffer[5]='-';
+						addTobuffer("+");
 					}
-
-					buf->buffer[4]='0'+(inc_speed/100);
-					buf->buffer[3]='0'+((inc_speed/10) % 10);
-					buf->buffer[2]='0'+(inc_speed % 10);
-
-					buf->buffer[1]='z';
-					buf->buffer[0]='.';
+					addTobuffer(convert_uint16_to_char_array(inc_speed));
+					flushBuffer();
 				}else if(buf->buffer[0]=='p'){ //Read ping parallax */
-					int ping_=ping(); //Read PB2
-					buf->index=4;
-					buf->buffer[4]='0'+(ping_/100);
-					buf->buffer[3]='0'+((ping_/10) % 10);
-					buf->buffer[2]='0'+(ping_ % 10);
-					buf->buffer[1]='z';
-					buf->buffer[0]='.';
+					uint16_t ping_=ping(); //Read PB2
+					clearBuffer();
+					addTobuffer(convert_uint16_to_char_array(ping_));
+					flushBuffer();
 				/* }else if(buf->buffer[0]=='e'){ //Read encoder counts
 					//int counts=get_encoder_counts(); //Read encoder PD2
 					buf->index=4;
@@ -206,47 +228,48 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					buf->buffer[0]='.';
 					velocitat=0;
 				}else if(buf->buffer[0]=='j'){ //Proves
-					buf->index=1;
-					//M1_forward(velocitat);M2_forward(velocitat);
-					move_robot(-velocitat,velocitat,FORWARD,170);
-					buf->buffer[1]='o';
-					buf->buffer[0]='.';
-				}else if(buf->buffer[0]=='c'){ //Compass hmc5883l
-					buf->index=36;
-					int heading=get_heading_hmc5883l();
-					buf->index=4;
-					buf->buffer[4]='0'+(heading/100);
-					buf->buffer[3]='0'+((heading/10) % 10);
-					buf->buffer[2]='0'+(heading % 10);
-					buf->buffer[1]='z';
-					buf->buffer[0]='.';
-					//sprintf(buf->buffer,".z%d\n",heading);
+					uint16_t A0=llegir_barra_sensors();
+
+					clearBuffer();
+					if (A0==0)addTobuffer("0");
+					else addTobuffer(convert_uint16_to_char_array(A0));
+					addTobuffer(",");
+					addTobuffer(convert_uint8_to_char_array(sensors[0]));
+					addTobuffer(",");
+					addTobuffer(convert_uint8_to_char_array(sensors[1]));
+					addTobuffer(",");
+					addTobuffer(convert_uint8_to_char_array(sensors[2]));
+					addTobuffer(",");
+					addTobuffer(convert_uint8_to_char_array(sensors[3]));
+					addTobuffer(",");
+					addTobuffer(convert_uint8_to_char_array(sensors[4]));
+					addTobuffer(",");
+					addTobuffer(convert_uint8_to_char_array(sensors[5]));
+					flushBuffer();
 
 				}else if(buf->buffer[0]=='t'){ //Send Bar test sensor reading
-					buf->index=3;
+
 					int read_sensor=PID_obtenir_errorp();
+					clearBuffer();
 					if (read_sensor<0){
-						buf->buffer[3]='-';
+						addTobuffer("-");
 						read_sensor=-read_sensor;
 					}else{
-						buf->buffer[3]='0';
+						addTobuffer("0");
 					}
-					//buf->buffer[3]='0'+((read_sensor/10) % 10);
-					buf->buffer[2]='1';
-					if (read_sensor==9) buf->buffer[2]='9';
-					if (read_sensor==8) buf->buffer[2]='8';
-					if (read_sensor==7) buf->buffer[2]='7';
-					if (read_sensor==6) buf->buffer[2]='6';
-					if (read_sensor==5) buf->buffer[2]='5';
-					if (read_sensor==4) buf->buffer[2]='4';
-					if (read_sensor==3) buf->buffer[2]='3';
-					if (read_sensor==2) buf->buffer[2]='2';
-					if (read_sensor==0) buf->buffer[2]='0';
 
-					//buf->buffer[3] = read_sensor & 0xFF; // equivalent to number % 256 LOW Byte
-					//buf->buffer[2] = read_sensor >> 8; // equivalent to number / 256 HIGH Byte
-					buf->buffer[1]='z';
-					buf->buffer[0]='.';
+					if (read_sensor==9) addTobuffer("9");
+					if (read_sensor==8) addTobuffer("8");
+					if (read_sensor==7) addTobuffer("7");
+					if (read_sensor==6) addTobuffer("6");
+					if (read_sensor==5) addTobuffer("5");
+					if (read_sensor==4) addTobuffer("4");
+					if (read_sensor==3) addTobuffer("3");
+					if (read_sensor==2) addTobuffer("2");
+					if (read_sensor==1) addTobuffer("1");
+					if (read_sensor==0) addTobuffer("0");
+
+					flushBuffer();
 				}
 
 				*u8data=buf->buffer[buf->index];
@@ -296,7 +319,7 @@ ISR(USART_RX_vect)
 		uint8_t u8temp;
 		u8temp=UDR0;
 		//check if period char or end of buffer
-		if ((BufferWrite(&buf, u8temp)==1)||(u8temp=='.'))
+		if ((BufferWrite(&buf, u8temp)==1)||(u8temp=='.') )
 		{
 				//disable reception and RX Complete interrupt
 				UCSR0B &= ~((1<<RXEN0)|(1<<RXCIE0));

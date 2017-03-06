@@ -1,5 +1,4 @@
-#ifndef Main_H
-#define Main_H
+#pragma once
 
 // Baby Orangutan frequency (20MHz) defined in Makefile
 #define FORWARD 0
@@ -15,6 +14,7 @@
 
 
 //Global variables shared across project
+extern uint8_t sensors[6];
 extern uint8_t Kp;  //48 lf 18 pots
 extern uint8_t  Kd;//148 lf 28 pots multiplicador 10
 extern volatile uint8_t velocitat; //180 lf 95 pots max 255
@@ -43,6 +43,7 @@ void prova_compass_direction(void);
 //ADC functions
 void init_ADC(void);
 uint16_t readADC(uint8_t channel);
+uint8_t readADC8(uint8_t channel);
 
 //Rescue functions and state finite machine states
 void adjust_speed_to_a_threshold(int current_read,int desired_read);
@@ -59,5 +60,3 @@ int ping(void);
 //void init_encoders(void);
 //void reset_encoder(void);
 //int get_encoder_counts(void);
-
-#endif

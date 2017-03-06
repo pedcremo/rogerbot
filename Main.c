@@ -10,8 +10,6 @@
 #include "Motor.h"
 #include "PIDfollower.h"
 #include "USART_and_telemetry.h"
-#include "hmc5883l/hmc5883l.h"  //Digital Compass
-#include "PIDcompass.h"
 
 //Local macros
 #define BV(bit)			(1 << bit)
@@ -29,18 +27,19 @@
 /***** Variables globals ********/
 //Constants Regulador PD 30:1 HP
 //uint8_t cont_corba=0;
+uint8_t sensors[6];
 uint8_t Kp = 48;  //48 lf 18 pots
-uint8_t  Kd = 48;//225 lf 28 pots multiplicador 100
-volatile uint8_t velocitat = 100; //225 lf 95 pots max 255
+uint8_t  Kd = 120;//225 lf 28 pots multiplicador 100
+volatile uint8_t velocitat = 150; //225 lf 95 pots max 255
 uint8_t telemetry_enabled = 0; //1 enabled, 0 disabled
 //V 7.39 vel 100 kp 20 kd 700 9,2 segons pista taller rogerbot1
-char strategy = 'e'; //a -> By default line following using interrupts, b -> pots rescue
+char strategy = 'a'; //a -> By default line following using interrupts, b -> pots rescue
 uint8_t curve_correction = 0; //0 Means we brake internal wheel, other value means we change wheel direction backward a percentage of the max speed
 volatile char start=0;
 volatile uint8_t turbo = 0; //Increment de la velocitat que posem en certs moments
 uint16_t compass_direction_to_follow = 0;
 /* No globals */
-uint8_t DEBUG = 1; //1 enabled, 0 disabled
+uint8_t DEBUG = 0; //1 enabled, 0 disabled
 
 int rescue_estat_actual=0; //Per mantindre l estat en la prova de Rescat
 int ticks_fora_circuit=0; //Per corregir comportament anomal del robot quan llig punt roig del centre dels segments. A vegades lectures -9 o 9 com si estiguerem fora del circuit
@@ -58,7 +57,7 @@ int main( void )
 	// We transmit 32bits in 0,27 ms
 	USART_init(); //Enables usart comunication with rogerbot using  interrupts (bluetooth mainly)
 	init_ADC(); //Set up ADC
-	//hmc5883l_init();//Enable compass
+
 	sei(); //As we use interruptions for USART communication we enable them
 
 	//Load Rogerbot settings from eeprom (speed, kp, kd ...)
@@ -105,7 +104,7 @@ int main( void )
 	}else{
 		//Motor_acceleracio_progressiva();
 		//inicializar_timer1();// We use the timer also as millis counter in other strategies
-		prova_compass_direction();
+		//prova_compass_direction();
 	}
 
 	while ( 1 )
@@ -113,32 +112,6 @@ int main( void )
 
 	}
 	return 0;
-}
-void prova_compass_direction(){
-	compass_direction_to_follow=get_heading_hmc5883l();
-
-	uint16_t contador=0;
-  uint8_t i=0;
-	for (i=0;i<=30;i++){
-		if (get_heading_hmc5883l()-compass_direction_to_follow==0){
-			contador+=1;
-		}else{
-			compass_direction_to_follow=get_heading_hmc5883l();
-		}
-	}
-
-  contador=0;
-	while ( 1 )
-	{
-		if (contador>150)
-			PID_compass_following(1);
-		else
-			PID_compass_following(0);
-
-		delay_ms(7);//Cada 6.26 ms minim temps per fer lectura
-		contador+=1;
-		if (contador>=300) contador=0;
-	}
 }
 
 void adjust_speed_to_a_threshold(int current_read,int desired_read){
@@ -239,9 +212,7 @@ void rescue_state_machine(){
 void rescue_state_machine_2016(){
 
 		rescue_estat_actual=0;
-		//velocitat=100;
-		//Kp=20;
-		//Kd=15;
+
 		int pots_rescatats=0;
 		int lectures_negre=0;
 		int lectures_blanc=0;
@@ -348,36 +319,57 @@ void rescue_state_machine_2016(){
 						COLOR=1;//NEGRE
 						if (DEBUG) {USART_transmitByte(49);_delay_us(150);} //Print 1
 						while(finding_line(velocitat,velocitat,FORWARD)!=0){}//Mentres estem en zona negra
-						while(finding_line(velocitat,velocitat,FORWARD)==0){}//Mentres estem en zona blanca
+						move_robot(velocitat,velocitat,FORWARD,400);
+						while(finding_line(45,45,FORWARD)==0){}//Mentres estem en zona blanca
 
 					}else{ //Si blanc parem
 						if (DEBUG) {USART_transmitByte(48);_delay_us(150);} //Print 0
-						velocitat=100;
+						//velocitat=100;
 						//move_robot(-velocitat,-velocitat,FORWARD,100);
 						//while(1) {Motor_right_forward(0);Motor_left_forward(0);}//STOP
 					}
 
 					pots_rescatats+=1;
-
+					if (pots_rescatats>=8) pots_rescatats=0;
 					//move_robot(velocitat,-velocitat,FORWARD,300); //Gira 90 graus
 					if (DEBUG) {USART_transmitByte(50);_delay_us(150);} //Print 2
 					if (proporcional==3){//Entrem amb sensors esquerre primer
-						dx = -5;
+						dx = -10;
+
 					}else if (proporcional==1){ //Entrem amb sensors de la dreta primer
-						dx = 35;
+						dx = 65;
 					}else{
 						dx = 15;
 					}
+
 					if (COLOR==0){//BLANC
-						move_robot(-velocitat/2,velocitat/2,FORWARD,200+dx); //90 graus
+						move_robot(-velocitat/2,velocitat/2,FORWARD,210+dx); //90 graus
 					}else{
-
-						move_robot(-velocitat/2,velocitat/2,FORWARD,380+dx-(pots_rescatats*5)); //90 graus
-
+						move_robot(-velocitat/2,velocitat/2,FORWARD,210+dx-(pots_rescatats*5)); //90 graus
+						/*move_robot(-velocitat/2,velocitat/2,FORWARD,310+dx); //90 graus
+						if (pots_rescatats>1){
+							move_robot(velocitat*0.9,velocitat,FORWARD,500);
+						}*/
+						//move_robot(-velocitat/2,velocitat/2,FORWARD,365+dx-(pots_rescatats*5)); //90 graus
 					}
 					//while (finding_line(-velocitat/2,velocitat/2,FORWARD) != 0){};//Girem a dreta fins trobar blanc
 					if (DEBUG) {USART_transmitByte(51);_delay_us(150);} //Print 3
-					while (finding_line(velocitat*0.9,velocitat,FORWARD) == 0){}; //Avancem fins linia guia lateral
+
+					if (pots_rescatats>=3) {
+						move_robot(velocitat*0.85,velocitat,FORWARD,250);
+						move_robot(velocitat,velocitat*0.85,FORWARD,300);
+						while (finding_line(velocitat*1.15,velocitat,FORWARD) == 0){}; //Avancem fins linia guia lateral
+						Motor_right_forward(0);
+						Motor_left_forward(0);
+
+						move_robot(velocitat*0.7/3,velocitat/3,FORWARD,10);
+					}else{
+						while (finding_line(velocitat,velocitat,FORWARD) == 0){}; //Avancem fins linia guia lateral
+						Motor_right_forward(0);
+						Motor_left_forward(0);
+
+						move_robot(velocitat*0.7/3,velocitat/3,FORWARD,10);
+					}
 
 					while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};//Girem a dreta fins trobar linia
 
@@ -390,13 +382,7 @@ void rescue_state_machine_2016(){
 
 					}
 					if (DEBUG) {USART_transmitByte(52);_delay_us(150);} //Print 4
-					/*if (COLOR==0){ //Si pot es blanc
-						//follow_line_until_crossroad(1);
-						if (DEBUG) {USART_transmitByte(53);_delay_us(150);} //Print 5
-					}else{
-						//follow_line_until_crossroad(2);
-						if (DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
-					}*/
+
 					tics_fora=0;
 					while (tics_fora<30){ //Mentres no estiguem fora de linia
 						proporcional=PID_obtenir_errorp();
@@ -414,8 +400,8 @@ void rescue_state_machine_2016(){
 					Motor_right_forward(0);
 					Motor_left_forward(0);
 					_delay_ms(500);
-					move_robot(velocitat/2,velocitat/2,FORWARD,70); //Avant una mica
-					while (finding_line(-velocitat/2,velocitat/2,FORWARD) != 1){};//Girem a dreta fins trobar linia
+					move_robot(velocitat/2,velocitat/2,FORWARD,60); //Avant una mica
+					while (finding_line(-velocitat/3,velocitat/3,FORWARD) != 1){};//Girem a dreta fins trobar linia
 
 					rescue_estat_actual=2;
 					break;
@@ -778,11 +764,35 @@ void load_eeprom_settings(void){
 }
 //Li passem el port analogic que volem llegir i ens retorna la lectura (0 .. 7)
 uint16_t readADC(uint8_t channel) {
+//uint16_t readADC(uint8_t channel) {
   ADMUX = (0xf0 & ADMUX) | channel;
   ADCSRA |= (1 << ADSC);
   loop_until_bit_is_clear(ADCSRA, ADSC);
-  return (ADC);
+  return (ADC);//10 bits
+  // return (ADCH);//8 bits
 }
+
+uint8_t readADC8(uint8_t channel) {
+	// Usa como referencia AVcc (REFS0), alinea a la izda porque solo vamos a
+	// usar los 8 bits mas altos (ADLAR) y selecciona el canal (p.266)
+	ADMUX = _BV(REFS0) | _BV(ADLAR) | channel;
+
+	// Inicia la conversion
+	ADCSRA |= _BV(ADSC) | _BV(ADEN);
+
+	// Espera a que acabe (TODO: espera a la IRQ?)
+	do {/*
+		chSysLock();
+		int msg = chThdSuspendTimeoutS(&trp, TIME_INFINITE);
+		(void)msg;
+		chSysUnlock();
+	*/
+	} while (ADCSRA & _BV(ADSC)) ;
+
+	// Devuelve la muestra
+	return ADCH;
+}
+
 //Iniciem el sistema de lectura analogic-digital
 void init_ADC(void){
  ADMUX |= (1 << REFS0);                  /* reference voltage on AVCC */
@@ -828,7 +838,7 @@ void init_ports(void)
 {
    DDRD=0x6A;     //0110 1010
    PORTD=0x00;
-   DDRB=0x22;     //0010 0010
+   DDRB=0x26;     //0010 0010
    PORTB=0x00;
    DDRC=0x00;     //0000 0000
    PORTC=0x00;
@@ -837,7 +847,7 @@ void init_ports(void)
 
 void inicializar_timer1(void) //Configura el timer y la interrupción.
 {
-    OCR1A= 0x009C; //009C 0.5 ms,0138 1 ms. 0C35 10ms, 0x0271 2ms.
+    OCR1A= 0x0138; //009C 0.5 ms,0138 1 ms. 0C35 10ms, 0x0271 2ms.
     TCCR1B |=((1<<WGM12)|(1<<CS11)|(1<<CS10));    //Los bits que no se tocan a 0 por defecto
     TIMSK1 |= (1<<OCIE1A);
     sei();

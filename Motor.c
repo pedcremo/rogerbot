@@ -18,7 +18,7 @@ void Motor_acceleracio_progressiva(){
 		}else{
 			Motor_right_forward(velocitat);Motor_left_forward(velocitat);
 		}
-		_delay_ms(2);
+		_delay_ms(1);
 	}
 }
 
@@ -32,12 +32,12 @@ void Motor_right_reverse(unsigned char pwm)
 }
 void Motor_right_forward(unsigned char pwm)
 {
-	//if (pwm==0) brake_right_counts++;else brake_right_counts=0; 
+	//if (pwm==0) brake_right_counts++;else brake_right_counts=0;
 	OCR0B = 0;
 	/*if (brake_right_counts>70){
 		//OCR0A = 20;
 		Motor_right_reverse(50);
-		//if (brake_right_counts>10) brake_right_counts=0; 
+		//if (brake_right_counts>10) brake_right_counts=0;
 	}else{
 		OCR0A = pwm;
 	}*/
@@ -46,7 +46,7 @@ void Motor_right_forward(unsigned char pwm)
 void Motor_left_forward(unsigned char pwm)
 {
 	//if (pwm==0) brake_left_counts++;else brake_left_counts=0;
-	
+
 	OCR2B = 0;
 	/*if (brake_left_counts>70){
 		//OCR2A = 20;
@@ -80,4 +80,3 @@ void Motor_init(void)
 	DDRD |= (1 << PORTD3) | (1 << PORTD5) | (1 << PORTD6);
 	DDRB |= (1 << PORTB3);
 }
-

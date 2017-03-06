@@ -1,9 +1,8 @@
-#ifndef USART_and_telemetry_H
-#define USART_and_telemetry_H
+#pragma once
 
 /*************************************************/
 /*** Buffer used for UART communications       ***/
-#define BUF_SIZE 45
+#define BUF_SIZE 60
 //type definition of buffer structure
 typedef struct{
 		//Array of chars
@@ -18,6 +17,3 @@ typedef struct{
 void USART_init(void);
 void USART_disable_interrupts(void); //Disable reception interrupt now we can
 void USART_transmitByte(uint8_t data);//Used to send a byte via USART (usually BT)
-
-
-#endif
