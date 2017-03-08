@@ -91,7 +91,7 @@ uint16_t read_sensor_bar_calibrated(){
 void calibrate_sensors(){
     uint8_t i=0;
     uint16_t x=0;
-    uint8_t y=0;
+    //uint8_t y=0;
 
     for (i=0;i<6;i++){
         sensors_min_reading[i] = 0;
@@ -109,7 +109,7 @@ void calibrate_sensors(){
         }
 
         delay_ms(10);//
-        y++;
+        //y++;
         /*if (y < 10) PORTB &= ~(1<<LED); //LED OFF
         else if (y < 20) PORTB |= 1<<LED; //LED on
         else y = 0;*/

@@ -9,6 +9,7 @@
 #include "Main.h"
 #include "Motor.h"
 #include "PIDfollower.h"
+#include "SensorBar.h"
 #include "USART_and_telemetry.h"
 #include "desafios/common.h"
 #include "desafios/especific2014.h"
@@ -58,6 +59,7 @@ int main( void )
 
 	//Load Rogerbot settings from eeprom (speed, kp, kd ...)
 	load_eeprom_settings();
+	calibrate_sensors();
 	//init_encoders();
 	while(pulsador != 0)
 	{
