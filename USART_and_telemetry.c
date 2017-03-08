@@ -193,7 +193,7 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 
 				}else if(buf->buffer[0]=='d'){ //Debugging purposes
 					//buf->index=5;
-					uint16_t inc_speed=0;
+					/*uint16_t inc_speed=0;
 					uint16_t voltage=readADC(6); //Read ADC6
 					clearBuffer();
 					if (voltage<770){
@@ -203,7 +203,15 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 						inc_speed = (voltage-770)/5;
 						addTobuffer("+");
 					}
-					addTobuffer(convert_uint16_to_char_array(inc_speed));
+					addTobuffer(convert_uint16_to_char_array(inc_speed));*/
+					llegir_barra_sensors();
+					uint8_t i=0;
+					clearBuffer();
+					for (i=0;i<6;i++){
+						addTobuffer(convert_uint8_to_char_array(sensors[i]));						
+						if (i != 5) addTobuffer(",");
+						else addTobuffer("\n");
+					}
 					flushBuffer();
 				}else if(buf->buffer[0]=='p'){ //Read ping parallax */
 					uint16_t ping_=ping(); //Read PB2
