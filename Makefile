@@ -37,7 +37,7 @@ TARGET=Main
 #OBJECT_FILES=rogerbot.o
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c USART_and_telemetry.c Motor.c PIDfollower.c 
+SRC = $(TARGET).c USART_and_telemetry.c Motor.c PIDfollower.c SensorBar.c Ping.c desafios/common.c desafios/especific2014.c desafios/especific2015.c desafios/especific2016.c
 # Object files directory
 #     To put object files in current directory, use a dot (.), do NOT make
 #     this an empty or blank macro!

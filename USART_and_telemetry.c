@@ -12,6 +12,9 @@
 #include "USART_and_telemetry.h"
 #include "Main.h"
 #include "PIDfollower.h"
+#include "SensorBar.h"
+#include "Ping.h"
+
 
 
 #include "math.h"
@@ -227,24 +230,23 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					buf->buffer[1]='o';
 					buf->buffer[0]='.';
 					velocitat=0;
-				}else if(buf->buffer[0]=='j'){ //Proves
-					uint16_t A0=llegir_barra_sensors();
-
+				}else if(buf->buffer[0]=='j'){ //Read min max and calibrated values for every sensor
+					uint16_t A0 = read_sensor_bar_calibrated();
+					uint8_t i=0;
 					clearBuffer();
 					if (A0==0)addTobuffer("0");
 					else addTobuffer(convert_uint16_to_char_array(A0));
-					addTobuffer(",");
-					addTobuffer(convert_uint8_to_char_array(sensors[0]));
-					addTobuffer(",");
-					addTobuffer(convert_uint8_to_char_array(sensors[1]));
-					addTobuffer(",");
-					addTobuffer(convert_uint8_to_char_array(sensors[2]));
-					addTobuffer(",");
-					addTobuffer(convert_uint8_to_char_array(sensors[3]));
-					addTobuffer(",");
-					addTobuffer(convert_uint8_to_char_array(sensors[4]));
-					addTobuffer(",");
-					addTobuffer(convert_uint8_to_char_array(sensors[5]));
+					addTobuffer("|");
+					for (i=0;i<6;i++){
+						addTobuffer(convert_uint8_to_char_array(sensors[i]));
+						addTobuffer("(");
+						addTobuffer(convert_uint8_to_char_array(sensors_min_reading[i]));
+						addTobuffer(",");
+						addTobuffer(convert_uint8_to_char_array(sensors_max_reading[i]));
+						addTobuffer(")");
+						if (i != 5) addTobuffer(",");
+						else addTobuffer("\n");
+					}
 					flushBuffer();
 
 				}else if(buf->buffer[0]=='t'){ //Send Bar test sensor reading

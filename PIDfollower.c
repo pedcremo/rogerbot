@@ -4,121 +4,8 @@
 #include "USART_and_telemetry.h"
 #include "Motor.h"
 #include "Main.h"
+#include "SensorBar.h"
 
-// formula is:
-//
-//    0*value0 + 1000*value1 + 2000*value2 + ...
-//   --------------------------------------------
-//         value0  +  value1  +  value2 + ...
-/*uint16_t llegir_barra_sensors(){
-
-	//uint8_t aux=0;
-	uint8_t i=0;
-	float sensor_locations[6]={0,114.5,214.5,285.5,393,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
-	uint8_t numSensorsActivated = 0;
-	static uint32_t ultima_lectura=0;
-	uint32_t lectura_actual;
-	uint8_t cont=1;
-	uint32_t acum=0;
-
-	if (_SENSOR_I2) {
-		sensors[0] = 254;
-		numSensorsActivated+=1;
-		acum+=sensors[0];
-	}else sensors[0] = 0;
-
-	for (i=0;i<4;i++){
-		sensors[i+1] = readADC8(i);
-		if (sensors[i+1]<35) {
-			sensors[i+1]=0;
-		}else{
-			if (sensors[i+1]>230) {
-				sensors[i+1]=254;
-			}
-			numSensorsActivated+=1;
-			acum+=(uint32_t) sensors[i+1]* sensor_locations[cont];
-		}
-		cont++;
-	}
-
-	if (_SENSOR_D2)	{
-		sensors[5] = 254;
-		numSensorsActivated+=1;
-		acum+=(uint32_t) sensors[5]*500;
-	}else sensors[5] = 0;
-
-	if (numSensorsActivated>0){
-		// formula is:
-		//
-		//    0*value0 + 1*value1 + 2*value2 + ...
-		//   --------------------------------------------
-		//         value0  +  value1  +  value2 + ...
-		lectura_actual=acum/(sensors[0]+sensors[1]+sensors[2]+sensors[3]+sensors[4]+sensors[5]);
-		ultima_lectura=lectura_actual;
-	}else{
-		if (ultima_lectura<250)
-			lectura_actual=0;
-		else
-			lectura_actual=500;
-	}
-	return (uint16_t) lectura_actual;
-}*/
-
-void update_sensors(){
-
-    //uint8_t aux=0;
-    uint8_t i=0;
-    if (_SENSOR_I2) {sensors[0] = 254;}
-
-    for (i=0;i<4;i++){
-        sensors[i+1] = readADC8(i);
-    }
-    if (_SENSOR_D2) {sensors[5] = 254;}
-}
-
-uint16_t llegir_barra_sensors(){
-   update_sensors();
-   /*
-   * Esta variable guarda la posicion de la linea calculada
-   */
-  uint16_t posicion = 0;
-
-  /*
-   * Esta variable sirve para trackear la ultima posicion de linea buena antes de que se perdiera
-   */
-  static uint16_t posicionAnterior = 0;
-
-  /* 
-   *  En el siguiente codigo vamos a calcular la posicion de la linea
-   *  Los sensores miden entre 0 y 1023
-   *  Esto nos da un valor de linea teorico minimo de -3*1023 y uno maximo de 3*1023
-   */
-
-  uint8_t numeroSensoresDetectando = 0;
-  if (_SENSOR_I2)
-    numeroSensoresDetectando++;
-  if (sensors[1] > 100)
-    numeroSensoresDetectando+=2;
-  if (sensors[2] > 100)
-    numeroSensoresDetectando+=2;
-  if (sensors[3] > 100)
-    numeroSensoresDetectando+=2;
-  if (sensors[4] > 100)
-    numeroSensoresDetectando+=2;
-  if (_SENSOR_D2)
-    numeroSensoresDetectando++;
-  if (numeroSensoresDetectando > 1)
-  {
-    posicion = (-4 * (sensors[0]*4)) + (-2 * (sensors[1]*4)) + (-1 * (sensors[2]*4)) + (1 * (sensors[3]*4))+ (2 * (sensors[4]*4))+ (4 * (sensors[5]*4));
-    posicionAnterior = posicion;
-  }
-  else
-  {
-    posicion = posicionAnterior * 11 / 10; //Esto sirve para dar un valor un poco mayor al extremo cuando perdemos la linea
-  }
-  //NOTA: Aqui divido por 100 para tener valores entre -40 y 40, siendo esto una resolucion de unos 0.6mm, pero es posible que otro valor sea mejor
-  return posicion/100;
-}
 int PID_obtenir_errorp(void)
 {
 	char errorp=0;
@@ -376,15 +263,16 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 
 void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 
-	int speed_M1=0;
-	int speed_M2=0;
-	uint16_t proporcional = 0;
-	uint16_t derivative = 0;
-	static uint16_t last_proporcional = 0;
+	
+	//uint8_t speed_M1=0;
+	//uint8_t speed_M2=0;
+	int16_t proporcional = 0;
+	int16_t derivative = 0;
+	static int16_t last_proporcional = 0;
 
-	int velocitat_incrementada=velocitat+turbo;
+	uint8_t velocitat_incrementada=velocitat+turbo;
 
-	uint16_t position = llegir_barra_sensors();
+	uint16_t position = read_sensor_bar_calibrated();
 
 	// The "proportional" term should be 0 when we are on the line.
 	proporcional = position - 250;
@@ -398,7 +286,9 @@ void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 		// to the right.  If it is a negative number, the robot will
 		// turn to the left, and the magnitude of the number determines
 		// the sharpness of the turn.
-		int power_difference = (int) proporcional*100/Kp + derivative*(Kd/3);
+		//Kp 10 i Kd 89 pareixen funcionar be a 255 de velocitat
+		int16_t power_difference = (int16_t) proporcional*10/Kp + derivative*(Kd/3);
+		//int power_difference = proportional/15  + derivative*2/3;
 
 		// Compute the actual motor settings.  We never set either motor
 		// to a negative value.
@@ -409,21 +299,32 @@ void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 			power_difference = -velocitat_incrementada;
 
 		if(power_difference < 0){
+			//speed_M2=(uint8_t) velocitat_incrementada+power_difference;
+			//speed_M1=velocitat_incrementada;
 			Motor_left_forward(velocitat_incrementada+power_difference);
 			Motor_right_forward(velocitat_incrementada);
-
+			//Motor_left_forward(0);
+			//Motor_right_forward(0);
 		}else{
+			//speed_M2=velocitat_incrementada;
+			//speed_M1=(uint8_t) velocitat_incrementada-power_difference;
 			Motor_left_forward(velocitat_incrementada);
 			Motor_right_forward(velocitat_incrementada-power_difference);
+			//Motor_left_forward(0);
+			//Motor_right_forward(0);
 		}
 
 	if (telemetry_enabled){
-			USART_transmitByte(proporcional >> 8);
-			USART_transmitByte(proporcional & 0xFF);
-			USART_transmitByte(derivative >> 8);
-			USART_transmitByte(derivative & 0xFF);
-			USART_transmitByte(speed_M2);//Motor esquerre
-			USART_transmitByte(speed_M1);//Motor dret
+			//USART_transmitByte(proporcional >> 8);
+			//USART_transmitByte(proporcional & 0xFF);
+			//USART_transmitByte(0x00);
+			//USART_transmitByte(0x01);
+			USART_transmitByte(position >> 8);
+			USART_transmitByte(position & 0xFF);
+			//USART_transmitByte(0x0A);
+			//USART_transmitByte(0x0B);
+			//USART_transmitByte(speed_M2);//Motor esquerre
+			//USART_transmitByte(speed_M1);//Motor dret
 
 	}
 

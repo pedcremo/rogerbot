@@ -10,10 +10,11 @@
 
 //Follow line track
 void PID_line_following(int direction);
+void PID_line_followingNEW(int direction);
 
 //Bar sensor reading
 
-uint16_t llegir_barra_sensors(void);
+//uint16_t llegir_barra_sensors(void);
 int PID_obtenir_errorp(void);
 
 #define BV(bit)			(1 << bit)

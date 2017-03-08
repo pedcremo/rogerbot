@@ -10,18 +10,16 @@
 #include "Motor.h"
 #include "PIDfollower.h"
 #include "USART_and_telemetry.h"
+#include "desafios/common.h"
+#include "desafios/especific2014.h"
+//#include "desafios/especific2015.h"
+//#include "desafios/especific2016.h"
 
-//Local macros
-#define BV(bit)			(1 << bit)
-#define setBit(byte,bit) 	(byte |= BV(bit))
-#define clearBit(byte,bit) 	(byte &= ~BV(bit))
-#define toggleBit(byte,bit) 	(byte ^= BV(bit))
 
 //Start button. Interruptor. Inputs.
 #define PULSADOR PORTB0
 
 //PB2
-#define PING_PORT 5
 
 /*********** Ajust comportament robot per defecte *********/
 /***** Variables globals ********/
@@ -41,8 +39,6 @@ uint16_t compass_direction_to_follow = 0;
 /* No globals */
 uint8_t DEBUG = 0; //1 enabled, 0 disabled
 
-int rescue_estat_actual=0; //Per mantindre l estat en la prova de Rescat
-int ticks_fora_circuit=0; //Per corregir comportament anomal del robot quan llig punt roig del centre dels segments. A vegades lectures -9 o 9 com si estiguerem fora del circuit
 //volatile int encoder_counts=0; //Check wheel encoder counts
 
 int main( void )
@@ -88,17 +84,16 @@ int main( void )
 	}else if (strategy=='b'){ //Rescue strategy. Only Black cans and all go inside
 		//init_encoders();
 		adjust_speed_to_a_threshold(voltage,770);
-		rescue_state_machine();
+		rescue_state_machine_2014();
 	}else if (strategy=='c' || strategy=='d') {//Rescue strategy. White cans inside, black ones outside. 'd' blind strategy w-b-w-b-w-b-w-b
 		//init_encoders();
 		delay_ms(400);
 		//Read 780 means we have 7,55 v. Our ideal
 		adjust_speed_to_a_threshold(voltage,770);
-
 		rescue_state_machine_2015();
 
 	//Desafio robot 2016
-  }else if (strategy=='e'){
+  	}else if (strategy=='e'){
 		rescue_state_machine_2016();
 
 	}else{
@@ -114,17 +109,7 @@ int main( void )
 	return 0;
 }
 
-void adjust_speed_to_a_threshold(int current_read,int desired_read){
-	int inc_speed=0;
 
-	if (current_read<desired_read){
-		inc_speed = (desired_read-current_read)/7;
-	}else{
-		inc_speed = -(current_read-desired_read)/7;
-	}
-	velocitat+=inc_speed;
-
-}
 
 uint16_t get_current_millis(){ //Timer1 16 bits
 	return TCNT1;
@@ -138,550 +123,6 @@ void init_current_millis(){ //Timer1 16 bits every tick are 3.2 micro seconds if
 void delay_ms(int ms){
 	int i=0;
 	for (i=0;i<ms;i++){
-		_delay_ms(1);
-	}
-}
-//Ping sensor. Ultrasound echo en PING_PORT. Retorna milimetres de distancia
-int ping(){
-    // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
-    // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-	setBit(DDRB,PING_PORT);//set PB2 as digital output
-	clearBit(PORTB,PING_PORT); //set PB2 LOW
-	_delay_us(2);
-	setBit(PORTB,PING_PORT); //set PB2 HIGH
-	_delay_us(5);
-	clearBit(PORTB,PING_PORT); //set PB2 LOW
-	//_delay_us(20);
-
-
-	int pulseStart = 0;
-	init_current_millis(); //Reset to 0 millis counter
-	// The same pin is used to read the signal from the PING))): a HIGH
-    // pulse whose duration is the time (in microseconds) from the sending
-    // of the ping to the reception of its echo off of an object.
-	clearBit(DDRB,PING_PORT);//set PB2 as digital input
-	clearBit(PORTB,PING_PORT); //set PB2 LOW  (HIGH IMPEDANCE)
-	loop_until_bit_is_set(PINB,PING_PORT);
-
-	pulseStart = get_current_millis();
-
-	while(get_current_millis() - pulseStart < 625)         // loop for 2 ms max
-	{
-  		// break out of loop when signal goes low
-		if (!bit_is_set(PINB,PING_PORT)) break;
-	}
-	//unsigned long pulseLength = get_ticks() - pulseStart;  // sonar pulse travel time in units of 0.4 us
-
-	pulseStart= get_current_millis() - pulseStart; //Number of ticks of 3.2 microseconds each one
-    	_delay_us(200); //Short delay until next read
-	// La velocitat del so es 340 m/s o 29 microsegons per centimetre o 2,9 microsegons cada milimetre.
-  	// EL ping viatja en sentit d'anada i tornada, per tant per esbrinar la distancia al objecte
-  	// agafem sols la mitat del recorregut
-  	return (pulseStart*3.2)/2/2.9;
-
-}
-
-//State finite machine to solve rescue contest 2014
-void rescue_state_machine(){
-	while ( 1 )
-	{
-		switch(rescue_estat_actual){
-			case 0:
-				if (finding_line(velocitat,velocitat,0)==0) rescue_estat_actual=0;
-				else rescue_estat_actual=1;
-				break;
-			case 1:
-				follow_line_fast();
-				break;
-			case 2:
-				move_robot(velocitat,velocitat*0.6,1,680); //Menegem robot enrere 200 ms
-				delay_ms(3000);
-				while (finding_line(velocitat*0.6,velocitat,1)== 0){};
-				rescue_estat_actual=0; //Canvi d'estat
-				break;
-			default:
-				_delay_us(600);
-				Motor_right_forward(0);
-				Motor_left_forward(0);
-
-		}
-		_delay_us(400);
-	}
-}
-
-void rescue_state_machine_2016(){
-
-		rescue_estat_actual=0;
-
-		int pots_rescatats=0;
-		int lectures_negre=0;
-		int lectures_blanc=0;
-		int rescue_old_estat=9;
-		int proporcional = 0;
-		int tics_fora = 0;
-
-		while (1){
-			if (DEBUG && (rescue_estat_actual != rescue_old_estat)){ //DEBUG
-					USART_transmitByte(83); //S
-					USART_transmitByte(61); //=
-					USART_transmitByte(48+rescue_estat_actual);
-					USART_transmitByte(32); //Space
-					USART_transmitByte(13); //Carriage return
-			}
-			rescue_old_estat=rescue_estat_actual;
-
-			switch(rescue_estat_actual){
-				case 0: //Estat solament executat a l'inici per fer que el robot trobe la linia
-
-					if (finding_line(velocitat/2,velocitat,FORWARD)==0) rescue_estat_actual=0;
-					else {
-						rescue_estat_actual=1;
-					}
-
-					break;
-				case 1: //Robot encarat en la linia recta on conflueixen tots els encreuaments
-					//Motor_right_forward(0);Motor_left_forward(0);//STOP
-					//delay_ms(300);
-					tics_fora=0;
-					move_robot(velocitat,velocitat/2,FORWARD,180); //Moure robot avant 100 pasos d encoder
-					proporcional=finding_line(-velocitat/5,-velocitat/2,FORWARD);
-					while (tics_fora<50){//Enrere fins que els dos sensors d enmig
-						proporcional=finding_line(-velocitat/5,-velocitat/2,FORWARD);
-						if (proporcional==2){//els 2 sensors centrals
-							tics_fora+=1;
-						}
-					};
-
-					rescue_estat_actual=2;
-					break;
-				case 2: //BUG PROVEN. Cada vegada que emprenen la recta dels creuaments parem en el creuament marcat per pots_rescatats+1
-					//velocitat=100;
-					follow_line_until_crossroad(pots_rescatats+1);
-					rescue_estat_actual = 3;
-					break;
-
-				case 3: // Col·loquem robot perpendicular al encreuament i seguim linia fins final
-
-
-					move_robot(-velocitat,velocitat,FORWARD,100);
-					if (DEBUG) {USART_transmitByte(48);_delay_us(150);} //Print 0
-					tics_fora=0;
-					proporcional=finding_line(-velocitat/2,velocitat/2,FORWARD);
-					while (tics_fora<30){//Girem a dreta fins trobar linia
-						proporcional=finding_line(-velocitat/2,velocitat/2,FORWARD);
-						if (proporcional==2){//els 2 sensors centrals
-							tics_fora+=1;
-						}
-					}
-
-					if (DEBUG) {USART_transmitByte(49);_delay_us(150);} //Print 1
-					proporcional=PID_obtenir_errorp();
-					while (proporcional != 9 || proporcional != -9){ //Mentres no estiguem fora de linia
-						proporcional=PID_obtenir_errorp();
-
-						if (proporcional == 9 || proporcional == -9) {
-							tics_fora+=1;
-							if (tics_fora>50) break;
-						}
-						PID_line_following(FORWARD); //Seguiment de linia Forward
-						_delay_us(850);
-						if (DEBUG) {USART_transmitByte(50);_delay_us(150);} //Print 2
-						//if (DEBUG) {USART_transmitByte(50);delay_ms(1);} //Print 2
-					};
-					tics_fora=0;
-					rescue_estat_actual=4;
-					break;
-
-				case 4://Recorregut de 50 cm des de que acaba la linia de pot fins que deixem pot blanc en primera franja negra o negre en la segona i tornem per la linia lateral guia al punt e partida
-					tics_fora=0;
-					lectures_negre=0;
-					lectures_blanc=0;
-					int COLOR=0; //0 blanc,1 negre
-					int dx=0;
-					//move_robot(velocitat,velocitat,FORWARD,300);
-					proporcional=finding_line(velocitat,velocitat,FORWARD);
-					while (proporcional == 0){
-						_delay_ms(1);
-						if (es_negre()){
-							lectures_negre+=1;
-							proporcional=finding_line(velocitat,velocitat,FORWARD);
-						}else{
-							lectures_blanc+=1;
-							if ((lectures_blanc >lectures_negre) && (lectures_blanc>=190)){
-								proporcional=finding_line(45,45,FORWARD);
-							}else{
-								proporcional=finding_line(velocitat,velocitat,FORWARD);
-							}
-						}
-
-					}
-					if (lectures_negre>lectures_blanc){ //Si pot negre
-						COLOR=1;//NEGRE
-						if (DEBUG) {USART_transmitByte(49);_delay_us(150);} //Print 1
-						while(finding_line(velocitat,velocitat,FORWARD)!=0){}//Mentres estem en zona negra
-						move_robot(velocitat,velocitat,FORWARD,400);
-						while(finding_line(45,45,FORWARD)==0){}//Mentres estem en zona blanca
-
-					}else{ //Si blanc parem
-						if (DEBUG) {USART_transmitByte(48);_delay_us(150);} //Print 0
-						//velocitat=100;
-						//move_robot(-velocitat,-velocitat,FORWARD,100);
-						//while(1) {Motor_right_forward(0);Motor_left_forward(0);}//STOP
-					}
-
-					pots_rescatats+=1;
-					if (pots_rescatats>=8) pots_rescatats=0;
-					//move_robot(velocitat,-velocitat,FORWARD,300); //Gira 90 graus
-					if (DEBUG) {USART_transmitByte(50);_delay_us(150);} //Print 2
-					if (proporcional==3){//Entrem amb sensors esquerre primer
-						dx = -10;
-
-					}else if (proporcional==1){ //Entrem amb sensors de la dreta primer
-						dx = 65;
-					}else{
-						dx = 15;
-					}
-
-					if (COLOR==0){//BLANC
-						move_robot(-velocitat/2,velocitat/2,FORWARD,210+dx); //90 graus
-					}else{
-						move_robot(-velocitat/2,velocitat/2,FORWARD,210+dx-(pots_rescatats*5)); //90 graus
-						/*move_robot(-velocitat/2,velocitat/2,FORWARD,310+dx); //90 graus
-						if (pots_rescatats>1){
-							move_robot(velocitat*0.9,velocitat,FORWARD,500);
-						}*/
-						//move_robot(-velocitat/2,velocitat/2,FORWARD,365+dx-(pots_rescatats*5)); //90 graus
-					}
-					//while (finding_line(-velocitat/2,velocitat/2,FORWARD) != 0){};//Girem a dreta fins trobar blanc
-					if (DEBUG) {USART_transmitByte(51);_delay_us(150);} //Print 3
-
-					if (pots_rescatats>=3) {
-						move_robot(velocitat*0.85,velocitat,FORWARD,250);
-						move_robot(velocitat,velocitat*0.85,FORWARD,300);
-						while (finding_line(velocitat*1.15,velocitat,FORWARD) == 0){}; //Avancem fins linia guia lateral
-						Motor_right_forward(0);
-						Motor_left_forward(0);
-
-						move_robot(velocitat*0.7/3,velocitat/3,FORWARD,10);
-					}else{
-						while (finding_line(velocitat,velocitat,FORWARD) == 0){}; //Avancem fins linia guia lateral
-						Motor_right_forward(0);
-						Motor_left_forward(0);
-
-						move_robot(velocitat*0.7/3,velocitat/3,FORWARD,10);
-					}
-
-					while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};//Girem a dreta fins trobar linia
-
-					proporcional=PID_obtenir_errorp();
-					while (tics_fora < 150){ //Mentres no estiguem centrats
-						proporcional=PID_obtenir_errorp();
-						if (proporcional==0 ) tics_fora+=1;
-						PID_line_following(FORWARD); //Seguiment de linia Forward
-						_delay_ms(1);
-
-					}
-					if (DEBUG) {USART_transmitByte(52);_delay_us(150);} //Print 4
-
-					tics_fora=0;
-					while (tics_fora<30){ //Mentres no estiguem fora de linia
-						proporcional=PID_obtenir_errorp();
-
-						if (proporcional == 9 || proporcional == -9) {
-							tics_fora+=1;
-							//if (tics_fora>50) break;
-						}
-						PID_line_following(FORWARD); //Seguiment de linia Forward
-						_delay_us(600);
-						if (DEBUG) {USART_transmitByte(50);_delay_us(150);} //Print 2
-						//if (DEBUG) {USART_transmitByte(50);delay_ms(1);} //Print 2
-					};
-
-					Motor_right_forward(0);
-					Motor_left_forward(0);
-					_delay_ms(500);
-					move_robot(velocitat/2,velocitat/2,FORWARD,60); //Avant una mica
-					while (finding_line(-velocitat/3,velocitat/3,FORWARD) != 1){};//Girem a dreta fins trobar linia
-
-					rescue_estat_actual=2;
-					break;
-				default:
-					//move_robot(0,0,FORWARD,300); //PARA
-					Motor_right_forward(0);
-					Motor_left_forward(0);
-					break;
-			}
-		}
-
-}
-
-
-void rescue_state_machine_2015(){
-	char dir_robot=0; //0 Cap endins ,1 cap a fora
-	char lectura_pot=0;
-	int ping_read=0;
-	int rescue_old_estat=9;
-	int delay_debug = 2;
-	init_current_millis();
-
-	while ( 1 )
-	{
-		if (DEBUG && (rescue_estat_actual != rescue_old_estat)){ //DEBUG
-				USART_transmitByte(83); //S
-				USART_transmitByte(61); //=
-				USART_transmitByte(48+rescue_estat_actual);
-				USART_transmitByte(32); //Space
-				USART_transmitByte(13); //Carriage return
-		}
-		rescue_old_estat=rescue_estat_actual;
-		switch(rescue_estat_actual){
-			case 0:
-				if (finding_line(velocitat,velocitat,FORWARD)==0) rescue_estat_actual=0;
-				else rescue_estat_actual=1;
-				break;
-			case 1:
-				follow_line_fast();
-				delay_ms(2);
-				//if (DEBUG) USART_transmitByte(48); //Print 5
-				//if (telemetry_enabled) USART_transmitByte(48);
-				if (strategy=='c'){ //Si estrategia = e ni mirem color ni res que se li parega
-					//if (telemetry_enabled) USART_transmitByte(49);
-					while (get_current_millis()<800){Motor_left_forward(0);Motor_right_forward(0);} //2 ms
-					if (ping()<45 ){ //Si el pot esta a menys de 58 mm frenem i llegim color
-						init_current_millis();
-
-						Motor_right_forward(0);Motor_left_forward(0);
-						if (DEBUG) {USART_transmitByte(50);delay_ms(delay_debug);} //Print 2
-						_delay_ms(30);
-						ping_read=ping();
-						if (ping_read>30 && ping_read<45){
-							if (PID_obtenir_errorp()>1){
-								move_robot(velocitat/4,velocitat/3,FORWARD,35);
-						 	}else if(PID_obtenir_errorp()<-1){
-								move_robot(velocitat/3,velocitat/4,FORWARD,35);
-						 	}else{
-							 	move_robot(velocitat/3,velocitat/3,FORWARD,35);
-							}
-							if (DEBUG) {USART_transmitByte(51);delay_ms(delay_debug*2);}// Print 3
-						}
-						lectura_pot=es_negre(); //0 Blanc, 1 negre
-						//Si el pot es negre i estem anant cap endins o el pot es blanc i estem
-						//anant cap a fora
-						if((lectura_pot==1 && dir_robot == 0) || (lectura_pot==0 && dir_robot == 1)  ){
-
-							move_robot(velocitat,velocitat,BACKWARD,20); //Retrocedim 1cm
-							move_robot(velocitat,-velocitat,FORWARD,230);
-							//move_robot(velocitat*0.6,velocitat,FORWARD,250);
-							while (finding_line(velocitat*0.42,velocitat,FORWARD) == 0){};
-							Motor_right_forward(0);Motor_left_forward(0);
-							if (DEBUG){delay_ms(delay_debug);}
-							move_robot(velocitat*0.8,velocitat,FORWARD,180);
-
-							if (DEBUG){delay_ms(delay_debug);}
-
-							while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};
-
-							if (dir_robot==0) dir_robot=1;
-							else dir_robot=0;
-							if (DEBUG) {Motor_right_forward(0);Motor_left_forward(0);USART_transmitByte(52);delay_ms(delay_debug*2);}//Print 4
-						}
-						if (DEBUG) USART_transmitByte(53); //Print 5
-						turbo=20;
-						rescue_estat_actual=3;
-					}
-				}//Fi strategy
-				break;
-			case 2:
-				//move_robot(velocitat,velocitat,BACKWARD,36);//Robot cap enrere 2 cm
-				if(dir_robot == 1){ //Si el robot va cap a fora del circuit
-					turbo=30;
-					move_robot(-velocitat,velocitat,FORWARD,185);
-					dir_robot=0;
-					while (finding_line((velocitat+20)*0.55,velocitat+20,FORWARD) == 0){};
-					Motor_right_forward(0);Motor_left_forward(0);
-
-					move_robot(velocitat,velocitat*0.8,FORWARD,180);
-					if (DEBUG) {USART_transmitByte(48);delay_ms(delay_debug);}// Print 0
-					while (finding_line(-velocitat/2,velocitat/2,FORWARD) == 0){};
-					Motor_right_forward(0);Motor_left_forward(0);
-					if (DEBUG) {delay_ms(delay_debug);}
-					turbo=0;
-				}else{ //Si el robot va cap endins del circuit i s ha acabat segment
-
-					move_robot(velocitat,velocitat,BACKWARD,180);
-					//delay_ms(3000);
-					move_robot(velocitat,-velocitat,FORWARD,170); //Girem sobre si mateix sentit antihorari uns 60graus
-					//delay_ms(3000);
-					//if (DEBUG) delay_ms(5000);
-					dir_robot=1; //Canviem direccio. Ara anirem de dins cap a fora
-					//while (finding_line(velocitat,velocitat*0.55,FORWARD) == 0){}; //Recte fins trobar la linia
-					while (finding_line(velocitat*0.8,velocitat,FORWARD) == 0){};
-					Motor_right_forward(0);Motor_left_forward(0);
-					if (DEBUG) {USART_transmitByte(50);delay_ms(delay_debug);} //Print 2
-					delay_ms(10);
-					move_robot(velocitat*0.8,velocitat,FORWARD,135);
-
-					if (DEBUG) {USART_transmitByte(51);delay_ms(delay_debug);} //Print 3
-					move_robot(velocitat/2,-velocitat/2,FORWARD,120); //Seguretat
-					while (finding_line(velocitat/2,-velocitat/2,FORWARD) == 0){};
-					Motor_right_forward(0);Motor_left_forward(0);
-
-					if (DEBUG) {USART_transmitByte(52);delay_ms(delay_debug);} //Print 4
-
-				}
-				if (DEBUG) USART_transmitByte(53); //Print 4
-				turbo=0;
-				rescue_estat_actual=1;
-				break;
-			case 3:
-				follow_line_fast();
-				break;
-			default:
-				_delay_us(600);
-				Motor_right_forward(0);
-				Motor_left_forward(0);
-				break;
-
-		}
-		/*if (telemetry_enabled){ //DEBUG
-			USART_transmitByte(13); //Carriage return
-		}*/
-		_delay_us(20);
-	}
-}
-//Check if can is black. 1 means black, 0 means white
-char es_negre(){
-	int sharpIR=200;
- 	int threshold=17; //Below this value is black
-	sharpIR=readADC(4); //Read IR sensor.Be sure to be less than 3cm from target
-	//char is_black=0; //No by default
-
-	if (sharpIR<threshold){
-		return 1; //Black
-	}else{ //Could be white or black but we are not aligned properly
-
-		/*move_robot(velocitat/2,-velocitat/2,FORWARD,5); //Seguretat
-		sharpIR=readADC(4);
-		delay_ms(10);
-		if (sharpIR<threshold) is_black=1;
-		move_robot(velocitat/2,-velocitat/2,FORWARD,5);
-		sharpIR=readADC(4);
-		delay_ms(10);
-		if (sharpIR<threshold) is_black=1;
-		move_robot(-velocitat/2,velocitat/2,FORWARD,15);
-		sharpIR=readADC(4);
-		delay_ms(10);
-		if (sharpIR<threshold) is_black=1;
-		move_robot(-velocitat/2,velocitat/2,FORWARD,5);
-		sharpIR=readADC(4);
-		delay_ms(10);
-		if (sharpIR<threshold) is_black=1;
-		move_robot(velocitat/2,-velocitat/2,FORWARD,10); //Tornem al mig
-		*/
-		return 0; //White
-	}
-}
-
-int finding_line(int speedM1, int speedM2, int direction){
-	int proporcional = PID_obtenir_errorp();
-	if (proporcional==9 || proporcional == -9){
-			if (direction==0){
-				if (speedM1>=0) Motor_right_forward(speedM1);else Motor_right_reverse(-speedM1);
-				if (speedM2>=0) Motor_left_forward(speedM2);else Motor_left_reverse(-speedM2);
-			}else{
-				Motor_right_reverse(speedM1);
-				Motor_left_reverse(speedM2);
-			}
-			return 0;
-
-	}else{
-			//Sensors centrals
-			if (proporcional>=-1 && proporcional<=1){
-				return 2;
-			//Sensors esquerre
-			}else if (proporcional>-9 && proporcional<-1){
-				return 3;
-			//Sensors dreta
-			}else{
-				return 1;
-			}
-	}
-	_delay_us(600);
-}
-
-//Trobem creuament X i parem
-void follow_line_until_crossroad(int crossroad_number){
-	int crossroads_found=0;
-	int proporcional = 0;
-    int beginning_crossroad_found=0;
-	int times_out=0;//Vegades fora
-	int lectures_seguides_creuament=0;
-
-	while(1){
-		proporcional=PID_obtenir_errorp();
-
-		//Si topem encreumant. Ho sabem pq estem en linia i _SENSOR_D1 i D2 activats al mateix temps
-		if ( (proporcional > -9 && proporcional <9) && (_SENSOR_D1 && _SENSOR_D2)){
-			times_out=0;
-			lectures_seguides_creuament+=1;
-			if (lectures_seguides_creuament>5) beginning_crossroad_found=1;
-			//if (DEBUG) {USART_transmitByte(56);_delay_us(150);} //Print 8
-		//Estem fora de linia
-		}else if (proporcional==9 || proporcional == -9){
-			lectures_seguides_creuament=0;
-			times_out+=1;
-			if (beginning_crossroad_found == 1){
-				//if (DEBUG) {USART_transmitByte(51);_delay_us(150);} //Print 3
-				//while (finding_line(-velocitat/3,velocitat/3,FORWARD) == 0){};//Girem a dreta fins trobar linia
-				crossroads_found+=1;
-				beginning_crossroad_found=0;
-				if (crossroads_found == crossroad_number){
-					//if (DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
-					break; //Eixim del bucle
-				}
-			}
-			//if (DEBUG) {USART_transmitByte(52);_delay_us(150);} //Print 4
-			if (times_out>150) break; //Si estem fora mes del compte
-		//Estem en línia pero _SENSOR_D1 i D2 no estan activats al mateix temps
-		}else{
-
-			if (beginning_crossroad_found){
-				lectures_seguides_creuament=0;
-				_delay_us(250);
-				proporcional=PID_obtenir_errorp();
-				if  (proporcional>-9 && proporcional < 9){ //Dins linia
-					beginning_crossroad_found=0;
-					crossroads_found+=1;
-					while (finding_line(-velocitat/3,velocitat/3,FORWARD) == 0){};//Girem a dreta fins trobar linia
-					//if (DEBUG) {USART_transmitByte(55);_delay_us(150);} //Print 7
-				}
-				//if (DEBUG) {USART_transmitByte(53);_delay_us(150);} //Print 5
-				if (crossroads_found == crossroad_number){
-					//if (DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
-					break; //Eixim del bucle
-				}
-			}
-		}
-		PID_line_following(FORWARD); //Forward
-		_delay_us(850);
-		//_delay_ms(1);
-	}
-
-	//rescue_estat_actual=2;
-}
-
-void follow_line_fast(void){
-	int proporcional = PID_obtenir_errorp();
-	if (proporcional==9 || proporcional == -9){
-		ticks_fora_circuit+=1;
-		if (ticks_fora_circuit>50){ //Si ens hem eixit de veritat. HACK. A vegades tenim lectures de 9 i -9 en els punts centrals rojos dels segments de la prova de rescat
-			Motor_right_forward(0);
-			Motor_left_forward(0);
-			rescue_estat_actual=2;
-		}
-	}else{
-		ticks_fora_circuit=0;
-		PID_line_following(FORWARD); //Forward
 		_delay_ms(1);
 	}
 }
@@ -704,41 +145,6 @@ void follow_line_fast(void){
 		}
 	}
 }*/
-void move_robot(int speedM1,int speedM2, int direction_, int encoder_steps_){
-	//reset_encoder();
-	//encoder_counts=0;
-	//print_encoder_counts();
-	int cont_wheel=0;
-	char old_state=0;
-	if((PIND & 0x04) != 0) old_state=1;
-	else old_state=0;
-
-
-	if(direction_==1){
-		Motor_right_reverse(speedM1);
-		Motor_left_reverse(speedM2);
-	}else{
-		if (speedM1>=0) Motor_right_forward(speedM1);else Motor_right_reverse(-speedM1);
-		if (speedM2>=0) Motor_left_forward(speedM2);else Motor_left_reverse(-speedM2);
-	}
-	//_delay_us(10);
-	while(cont_wheel<encoder_steps_){ //We read continously PD2 changes
-		if((PIND & 0x04) != 0){ //HIGH
-			if (old_state == 0) {
-				cont_wheel++;
-				old_state=1;
-			}
-		}else{ //LOW
-			if(old_state == 1){
-				cont_wheel++;
-				old_state=0;
-			}
-		}
-	}
-	//print_encoder_counts();
-	Motor_right_forward(0);
-	Motor_left_forward(0);
-}
 
 void load_eeprom_settings(void){
 	uint8_t aux=0;
@@ -857,5 +263,5 @@ void inicializar_timer1(void) //Configura el timer y la interrupción.
 // Interrupcio de temps activada cada x milisegons (depenent de inicialiar_timer1 en current_millis emmagatzemem el num de ms
 ISR(TIMER1_COMPA_vect)
 {
-	PID_line_following(FORWARD);
+	PID_line_followingNEW(FORWARD);
 }

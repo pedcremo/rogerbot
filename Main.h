@@ -24,6 +24,7 @@ extern uint8_t curve_correction;
 extern char strategy;
 extern volatile char start;
 extern uint16_t compass_direction_to_follow;
+extern uint8_t DEBUG;
 
 //Main functions
 void init_ports(void);
@@ -45,18 +46,18 @@ void init_ADC(void);
 uint16_t readADC(uint8_t channel);
 uint8_t readADC8(uint8_t channel);
 
-//Rescue functions and state finite machine states
-void adjust_speed_to_a_threshold(int current_read,int desired_read);
-char es_negre(void);
-int finding_line(int speedM1,int speedM2, int direction); //Return 0 if not found , 1 if found
-void follow_line_until_crossroad(int crossroad_number);
-void follow_line_fast(void); //State 1
-void move_robot(int speedM1,int speedM2,int direction_,int milliseconds_);
+// //Rescue functions and state finite machine states
+// void adjust_speed_to_a_threshold(int current_read,int desired_read);
+// char es_negre(void);
+// int finding_line(int speedM1,int speedM2, int direction); //Return 0 if not found , 1 if found
+// void follow_line_until_crossroad(int crossroad_number);
+// void follow_line_fast(void); //State 1
+// void move_robot(int speedM1,int speedM2,int direction_,int milliseconds_);
 
 //Ping functions
 uint16_t get_current_millis(void);
 void init_current_millis(void);
-int ping(void);
+//int ping(void);
 //void init_encoders(void);
 //void reset_encoder(void);
 //int get_encoder_counts(void);
