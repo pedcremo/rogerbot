@@ -34,8 +34,9 @@ void llegir_barra_sensors(){
 }
 
 uint16_t read_sensor_bar_calibrated(){
-    float sensor_locations[6]={0,114.5,214.5,285.5,393,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
-    //float sensor_locations[6]={0,100,200,300,400,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
+    //float sensor_locations[6]={0,114.5,214.5,285.5,393,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
+    //float sensor_locations[6]={0,115,215,286,393,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
+    float sensor_locations[6]={0,100,200,300,400,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
 
     int i = 0;
     uint8_t numSensorsActivated = 0;
