@@ -27,9 +27,9 @@
 //Constants Regulador PD 30:1 HP
 //uint8_t cont_corba=0;
 uint8_t sensors[6];
-uint8_t Kp = 48;  //48 lf 18 pots
-uint8_t  Kd = 120;//225 lf 28 pots multiplicador 100
-volatile uint8_t velocitat = 150; //225 lf 95 pots max 255
+uint8_t Kp = 12;  //48 lf 18 pots
+uint8_t  Kd = 78;//225 lf 28 pots multiplicador 100
+volatile uint8_t velocitat = 190; //225 lf 95 pots max 255
 uint8_t telemetry_enabled = 0; //1 enabled, 0 disabled
 //V 7.39 vel 100 kp 20 kd 700 9,2 segons pista taller rogerbot1
 char strategy = 'a'; //a -> By default line following using interrupts, b -> pots rescue
@@ -59,6 +59,7 @@ int main( void )
 
 	//Load Rogerbot settings from eeprom (speed, kp, kd ...)
 	load_eeprom_settings();
+	delay_ms(2000);
 	calibrate_sensors();
 	//init_encoders();
 	while(pulsador != 0)

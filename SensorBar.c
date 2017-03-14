@@ -2,6 +2,7 @@
 
 #include "Main.h"
 #include "PIDfollower.h"
+#include "Motor.h"
 
 
 
@@ -92,6 +93,8 @@ uint16_t read_sensor_bar_calibrated(){
 void calibrate_sensors(){
     uint8_t i=0;
     uint16_t x=0;
+    uint8_t contador = 0;
+    int16_t cruiseSpeed = 30;
     //uint8_t y=0;
 
     for (i=0;i<6;i++){
@@ -108,11 +111,17 @@ void calibrate_sensors(){
             if (sensors[i] < sensors_min_reading[i]) sensors_min_reading[i] = sensors[i];
             if (sensors[i] > sensors_max_reading[i]) sensors_max_reading[i] = sensors[i];
         }
-
+        contador++;
+        setSpeed(cruiseSpeed,-cruiseSpeed);
+        if (contador >= 100){
+            contador = 0;
+            cruiseSpeed = cruiseSpeed * (-1);
+        }
         delay_ms(10);//
         //y++;
         /*if (y < 10) PORTB &= ~(1<<LED); //LED OFF
         else if (y < 20) PORTB |= 1<<LED; //LED on
         else y = 0;*/
     }
+    setSpeed(0,0);
 }

@@ -7,6 +7,19 @@
 //static int brake_left_counts=0; //Counter used to implement abs brakes
 //static int brake_right_counts=0; //Counter used to implement abs brakes
 
+void setSpeed(int16_t speedLeft,int16_t speedRight){
+   if (speedLeft >= 0) {
+      Motor_left_forward(speedLeft);
+   }else{
+	  Motor_left_reverse(speedLeft*(-1)); 
+   }
+   if (speedRight >= 0) {
+      Motor_right_forward(speedRight);
+   }else{
+	  Motor_right_reverse(speedRight*(-1)); 
+   }
+}
+
 //We start from 0 to cruiser speed defined in global var velocitat in velocitat*2 ms
 void Motor_acceleracio_progressiva(){
 	int i=0;
