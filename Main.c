@@ -65,7 +65,7 @@ int main( void )
 	while(pulsador != 0)
 	{
 		pulsador = PINB & (1<<PULSADOR);
-    		if (start==1) break;
+        if (start==1) break;
 	}
 	delay_ms(5000);//Esperem 5 segons després de la polsació boto
 
@@ -93,11 +93,11 @@ int main( void )
 		delay_ms(400);
 		//Read 780 means we have 7,55 v. Our ideal
 		adjust_speed_to_a_threshold(voltage,770);
-		rescue_state_machine_2015();
+		//rescue_state_machine_2015();
 
 	//Desafio robot 2016
   	}else if (strategy=='e'){
-		rescue_state_machine_2016();
+		//rescue_state_machine_2016();
 
 	}else{
 		//Motor_acceleracio_progressiva();
@@ -154,6 +154,7 @@ void load_eeprom_settings(void){
 	//Get eeprom velocitat
 	aux = eeprom_read_byte((uint8_t *) VELOCITAT_ADDR_EEPROM);
 	if (aux>0 && aux <255) velocitat=aux;
+	else if (velocitat >0 && velocitat <255) eeprom_write_byte((uint8_t *) VELOCITAT_ADDR_EEPROM,velocitat);
 	//Get telemetry_enabled
 	aux = eeprom_read_byte((uint8_t *) TELEMETRY_ENABLED_ADDR_EEPROM);
 	if (aux==0 || aux==1) telemetry_enabled=aux;

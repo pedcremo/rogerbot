@@ -271,62 +271,65 @@ void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 	static int16_t last_proporcional = 0;
 
 	uint8_t velocitat_incrementada=velocitat+turbo;
+	
+	if (start == 1) {
+			uint16_t position = read_sensor_bar_calibrated();
 
-	uint16_t position = read_sensor_bar_calibrated();
+			// The "proportional" term should be 0 when we are on the line.
+			proporcional = position - 250;
+			derivative = proporcional - last_proporcional;
 
-	// The "proportional" term should be 0 when we are on the line.
-	proporcional = position - 250;
-	derivative = proporcional - last_proporcional;
+			// Remember the last position.
+			last_proporcional = proporcional;
 
-	// Remember the last position.
-	last_proporcional = proporcional;
+				// Compute the difference between the two motor power settings,
+				// m1 - m2.  If this is a positive number the robot will turn
+				// to the right.  If it is a negative number, the robot will
+				// turn to the left, and the magnitude of the number determines
+				// the sharpness of the turn.
+				//Kp 10 i Kd 89 pareixen funcionar be a 255 de velocitat
+				int16_t power_difference = (int16_t) proporcional*10/Kp + derivative*(Kd/3);
+				//int power_difference = proportional/15  + derivative*2/3;
 
-		// Compute the difference between the two motor power settings,
-		// m1 - m2.  If this is a positive number the robot will turn
-		// to the right.  If it is a negative number, the robot will
-		// turn to the left, and the magnitude of the number determines
-		// the sharpness of the turn.
-		//Kp 10 i Kd 89 pareixen funcionar be a 255 de velocitat
-		int16_t power_difference = (int16_t) proporcional*10/Kp + derivative*(Kd/3);
-		//int power_difference = proportional/15  + derivative*2/3;
+				// Compute the actual motor settings.  We never set either motor
+				// to a negative value.
 
-		// Compute the actual motor settings.  We never set either motor
-		// to a negative value.
+				if(power_difference > velocitat_incrementada)
+					power_difference = velocitat_incrementada;
+				if(power_difference < -velocitat_incrementada)
+					power_difference = -velocitat_incrementada;
 
-		if(power_difference > velocitat_incrementada)
-			power_difference = velocitat_incrementada;
-		if(power_difference < -velocitat_incrementada)
-			power_difference = -velocitat_incrementada;
+				if(power_difference < 0){
+					//speed_M2=(uint8_t) velocitat_incrementada+power_difference;
+					//speed_M1=velocitat_incrementada;
+					Motor_left_forward(velocitat_incrementada+power_difference);
+					Motor_right_forward(velocitat_incrementada);
+					//Motor_left_forward(0);
+					//Motor_right_forward(0);
+				}else{
+					//speed_M2=velocitat_incrementada;
+					//speed_M1=(uint8_t) velocitat_incrementada-power_difference;
+					Motor_left_forward(velocitat_incrementada);
+					Motor_right_forward(velocitat_incrementada-power_difference);
+					//Motor_left_forward(0);
+					//Motor_right_forward(0);
+				}
 
-		if(power_difference < 0){
-			//speed_M2=(uint8_t) velocitat_incrementada+power_difference;
-			//speed_M1=velocitat_incrementada;
-			Motor_left_forward(velocitat_incrementada+power_difference);
-			Motor_right_forward(velocitat_incrementada);
-			//Motor_left_forward(0);
-			//Motor_right_forward(0);
-		}else{
-			//speed_M2=velocitat_incrementada;
-			//speed_M1=(uint8_t) velocitat_incrementada-power_difference;
-			Motor_left_forward(velocitat_incrementada);
-			Motor_right_forward(velocitat_incrementada-power_difference);
-			//Motor_left_forward(0);
-			//Motor_right_forward(0);
-		}
+			if (telemetry_enabled){
+					//USART_transmitByte(proporcional >> 8);
+					//USART_transmitByte(proporcional & 0xFF);
+					//USART_transmitByte(0x00);
+					//USART_transmitByte(0x01);
+					USART_transmitByte(position >> 8);
+					USART_transmitByte(position & 0xFF);
+					//USART_transmitByte(0x0A);
+					//USART_transmitByte(0x0B);
+					//USART_transmitByte(speed_M2);//Motor esquerre
+					//USART_transmitByte(speed_M1);//Motor dret
 
-	if (telemetry_enabled){
-			//USART_transmitByte(proporcional >> 8);
-			//USART_transmitByte(proporcional & 0xFF);
-			//USART_transmitByte(0x00);
-			//USART_transmitByte(0x01);
-			USART_transmitByte(position >> 8);
-			USART_transmitByte(position & 0xFF);
-			//USART_transmitByte(0x0A);
-			//USART_transmitByte(0x0B);
-			//USART_transmitByte(speed_M2);//Motor esquerre
-			//USART_transmitByte(speed_M1);//Motor dret
-
+			}
+	}else{
+     	setSpeed(0,0);
 	}
-
     TIFR1 |= (1<<OCF1A);
 }

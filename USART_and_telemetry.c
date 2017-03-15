@@ -218,18 +218,14 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					clearBuffer();
 					addTobuffer(convert_uint16_to_char_array(ping_));
 					flushBuffer();
-				/* }else if(buf->buffer[0]=='e'){ //Read encoder counts
-					//int counts=get_encoder_counts(); //Read encoder PD2
-					buf->index=4;
-					buf->buffer[4]='0'+(encoder_counts/100);
-					buf->buffer[3]='0'+((encoder_counts/10) % 10);
-					buf->buffer[2]='0'+(encoder_counts % 10);
-					buf->buffer[1]='z';
-					buf->buffer[0]='.'; */
+				
 				}else if(buf->buffer[0]=='a'){ //Start Rogerbot line following
 					 buf->index=1;
 					 buf->buffer[1]='o';
 					 buf->buffer[0]='.';
+					 /*clearBuffer();
+					 addTobuffer("o.");
+					 flushBuffer();*/
 					 start=1;
 					 //Load Rogerbot settings from eeprom (speed, kp, kd ...)
 					 load_eeprom_settings();
@@ -237,7 +233,11 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					buf->index=1;
 					buf->buffer[1]='o';
 					buf->buffer[0]='.';
-					velocitat=0;
+					/*clearBuffer();
+					addTobuffer("o.");
+					flushBuffer();*/
+					start =0;
+					//velocitat=0;
 				}else if(buf->buffer[0]=='j'){ //Read min max and calibrated values for every sensor
 					uint16_t A0 = read_sensor_bar_calibrated();
 					uint8_t i=0;
