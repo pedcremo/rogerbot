@@ -15,16 +15,16 @@ void rescue_state_machine_2014(){
 	{
 		switch(rescue_estat_actual){
 			case 0:
-				if (finding_line(velocitat,velocitat,0)==0) rescue_estat_actual=0;
+				if (finding_line(g_velocitat,g_velocitat,0)==0) rescue_estat_actual=0;
 				else rescue_estat_actual=1;
 				break;
 			case 1:
 				follow_line_fast();
 				break;
 			case 2:
-				move_robot(velocitat,velocitat*0.6,1,680); //Menegem robot enrere 200 ms
+				move_robot(g_velocitat,g_velocitat*0.6,1,680); //Menegem robot enrere 200 ms
 				delay_ms(3000);
-				while (finding_line(velocitat*0.6,velocitat,1)== 0){};
+				while (finding_line(g_velocitat*0.6,g_velocitat,1)== 0){};
 				rescue_estat_actual=0; //Canvi d'estat
 				break;
 			default:

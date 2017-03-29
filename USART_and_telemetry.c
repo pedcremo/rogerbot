@@ -109,57 +109,58 @@ static char * convert_uint16_to_char_array(uint16_t numero){
 static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 {
 		if(buf->index>0){
-				//Convert strategy to string. Null terminated
-				char * strategy_s;
-				strategy_s = malloc(2);
-				strategy_s[0] = strategy;
-				strategy_s[1] = '\0';
+				//Convert g_strategy to string. Null terminated
+				char * g_strategy_s;
+				g_strategy_s = malloc(2);
+				g_strategy_s[0] = g_strategy;
+				g_strategy_s[1] = '\0';
 
 				if (buf->buffer[0]=='l'){ //Load Rogerbot settings
 					load_eeprom_settings();
 
 					clearBuffer();
-					addTobuffer(convert_uint8_to_char_array(velocitat));
+					addTobuffer("o");
+					addTobuffer(convert_uint8_to_char_array(g_velocitat));
 
-					if (telemetry_enabled)
+					if (g_telemetry_enabled)
 						addTobuffer(",1,");
 					else
 						addTobuffer(",0,");
 
-					addTobuffer(convert_uint8_to_char_array(Kp));
+					addTobuffer(convert_uint8_to_char_array(g_Kp));
 					addTobuffer(",");
-					addTobuffer(convert_uint8_to_char_array(Kd));
+					addTobuffer(convert_uint8_to_char_array(g_Kd));
 					addTobuffer(",");
-					addTobuffer(strategy_s);
+					addTobuffer(g_strategy_s);
 					addTobuffer(",");
-					addTobuffer(convert_uint8_to_char_array(curve_correction));
+					addTobuffer(convert_uint8_to_char_array(g_curve_correction));
 					flushBuffer();
 
 				}else if(buf->buffer[0]=='s'){ //Store Rogerbot settings */
 					if (buf->buffer[7]=='.'){//Si arriba el caracter final . guardem sinó no ens arrisquem
-							velocitat=buf->buffer[1];
-							if (velocitat>=0 && velocitat<=255){
-								eeprom_write_byte((uint8_t *) VELOCITAT_ADDR_EEPROM,velocitat);
+							g_velocitat=buf->buffer[1];
+							if (g_velocitat>=0 && g_velocitat<=255){
+								eeprom_write_byte((uint8_t *) VELOCITAT_ADDR_EEPROM,g_velocitat);
 							}
-							telemetry_enabled=buf->buffer[2];
-							if (telemetry_enabled==0 || telemetry_enabled==1){
-								eeprom_write_byte((uint8_t *) TELEMETRY_ENABLED_ADDR_EEPROM,telemetry_enabled);
+							g_telemetry_enabled=buf->buffer[2];
+							if (g_telemetry_enabled==0 || g_telemetry_enabled==1){
+								eeprom_write_byte((uint8_t *) TELEMETRY_ENABLED_ADDR_EEPROM,g_telemetry_enabled);
 							}
-							Kp=buf->buffer[3];
-							if (Kp>=0 && Kp<=255){
-								eeprom_write_byte((uint8_t *) KP_ADDR_EEPROM,Kp);
+							g_Kp=buf->buffer[3];
+							if (g_Kp>=0 && g_Kp<=255){
+								eeprom_write_byte((uint8_t *) KP_ADDR_EEPROM,g_Kp);
 							}
-							Kd=buf->buffer[4];
-							if (Kd>=0 && Kd<=255){
-								eeprom_write_byte((uint8_t *) KD_ADDR_EEPROM,Kd);
+							g_Kd=buf->buffer[4];
+							if (g_Kd>=0 && g_Kd<=255){
+								eeprom_write_byte((uint8_t *) KD_ADDR_EEPROM,g_Kd);
 							}
-							strategy=buf->buffer[5];
-							if (strategy>=97 && strategy<=102){
-								eeprom_write_byte((uint8_t *) STRATEGY,strategy);
+							g_strategy=buf->buffer[5];
+							if (g_strategy>=97 && g_strategy<=102){
+								eeprom_write_byte((uint8_t *) STRATEGY,g_strategy);
 							}
-		          				curve_correction=buf->buffer[6];
-							if (curve_correction>=0 && curve_correction<=255){
-		          					eeprom_write_byte((uint8_t *) CURVE_CORRECTION,curve_correction);
+		          				g_curve_correction=buf->buffer[6];
+							if (g_curve_correction>=0 && g_curve_correction<=255){
+		          					eeprom_write_byte((uint8_t *) CURVE_CORRECTION,g_curve_correction);
 							}
 					}
 					buf->index=1;
@@ -208,7 +209,7 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					uint8_t i=0;
 					clearBuffer();
 					for (i=0;i<6;i++){
-						addTobuffer(convert_uint8_to_char_array(sensors[i]));						
+						addTobuffer(convert_uint8_to_char_array(g_sensors[i]));						
 						if (i != 5) addTobuffer(",");
 						else addTobuffer("\n");
 					}
@@ -226,8 +227,8 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					 /*clearBuffer();
 					 addTobuffer("o.");
 					 flushBuffer();*/
-					 start=1;
-					 //Load Rogerbot settings from eeprom (speed, kp, kd ...)
+					 g_start=1;
+					 //Load Rogerbot settings from eeprom (speed, g_Kp, g_Kd ...)
 					 load_eeprom_settings();
 				}else if(buf->buffer[0]=='z'){ //Stop Rogerbot line following
 					buf->index=1;
@@ -236,8 +237,8 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					/*clearBuffer();
 					addTobuffer("o.");
 					flushBuffer();*/
-					start =0;
-					//velocitat=0;
+					g_start =0;
+					//g_velocitat=0;
 				}else if(buf->buffer[0]=='j'){ //Read min max and calibrated values for every sensor
 					uint16_t A0 = read_sensor_bar_calibrated();
 					uint8_t i=0;
@@ -246,7 +247,7 @@ static uint8_t BufferRead(u8buf *buf, volatile uint8_t *u8data)
 					else addTobuffer(convert_uint16_to_char_array(A0));
 					addTobuffer("|");
 					for (i=0;i<6;i++){
-						addTobuffer(convert_uint8_to_char_array(sensors[i]));
+						addTobuffer(convert_uint8_to_char_array(g_sensors[i]));
 						addTobuffer("(");
 						addTobuffer(convert_uint8_to_char_array(sensors_min_reading[i]));
 						addTobuffer(",");
@@ -340,10 +341,10 @@ ISR(USART_RX_vect)
 //UDR0 Empty interrupt service routine
 ISR(USART_UDRE_vect)
 {
-		//if index is not at start of buffer
+		//if index is not at g_start of buffer
 		if (BufferRead(&buf, &UDR0)==1)
 		{
-				//start over
+				//g_start over
 				//reset buffer
 				BufferInit(&buf);
 				//disable transmission and UDR0 empty interrupt

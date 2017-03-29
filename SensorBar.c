@@ -18,26 +18,26 @@ void llegir_barra_sensors(){
     //uint8_t aux=0;
     uint8_t i=0;
     if (_SENSOR_I2){
-        sensors[0] = 255;
+        g_sensors[0] = 255;
     }else{
-        sensors[0] = 0;
+        g_sensors[0] = 0;
     }
     
     for (i=0;i<4;i++){
-        sensors[i+1] = readADC8(i);
+        g_sensors[i+1] = readADC8(i);
     }
 
     if (_SENSOR_D2){
-        sensors[5] = 255;
+        g_sensors[5] = 255;
     }else{
-        sensors[5] = 0;
+        g_sensors[5] = 0;
     }    
 }
 
 uint16_t read_sensor_bar_calibrated(){
     //float sensor_locations[6]={0,114.5,214.5,285.5,393,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
-    //float sensor_locations[6]={0,115,215,286,393,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
-    float sensor_locations[6]={0,100,200,300,400,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
+    float sensor_locations[6]={0,115,211,288,384,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
+    //float sensor_locations[6]={0,100,200,300,400,500}; //CNY70 sensors are not distributed equidistantly so we need these calculations
 
     int i = 0;
     uint8_t numSensorsActivated = 0;
@@ -58,15 +58,15 @@ uint16_t read_sensor_bar_calibrated(){
         denominator = calmax - calmin;
 
         if(denominator != 0)
-            x = (uint16_t) ((sensors[i] - calmin) * 255 / denominator);
+            x = (uint16_t) ((g_sensors[i] - calmin) * 255 / denominator);
 
         if(x < 40)
             x = 0;
         else if(x > 255)
             x = 255;
 
-        sensors[i] = (uint8_t) x;
-        if (sensors[i] != 0) numSensorsActivated++;
+        g_sensors[i] = (uint8_t) x;
+        if (g_sensors[i] != 0) numSensorsActivated++;
     }
 
     if (numSensorsActivated>0){
@@ -76,9 +76,9 @@ uint16_t read_sensor_bar_calibrated(){
         //   --------------------------------------------
         //         value0  +  value1  +  value2 + ...
         for (i=0;i<6;i++){
-            acum += (sensor_locations[i]*sensors[i]);
+            acum += (sensor_locations[i]*g_sensors[i]);
         }
-        lectura_actual=acum/(sensors[0]+sensors[1]+sensors[2]+sensors[3]+sensors[4]+sensors[5]);
+        lectura_actual=acum/(g_sensors[0]+g_sensors[1]+g_sensors[2]+g_sensors[3]+g_sensors[4]+g_sensors[5]);
         ultima_lectura=lectura_actual;
     }else{
         if (ultima_lectura<250)
@@ -106,10 +106,10 @@ void calibrate_sensors(){
         llegir_barra_sensors();
 
         for (i=0;i<6;i++){
-            if (sensors_min_reading[i] == 0) sensors_min_reading[i] = sensors[i];
-            if (sensors_max_reading[i] == 0) sensors_max_reading[i] = sensors[i];
-            if (sensors[i] < sensors_min_reading[i]) sensors_min_reading[i] = sensors[i];
-            if (sensors[i] > sensors_max_reading[i]) sensors_max_reading[i] = sensors[i];
+            if (sensors_min_reading[i] == 0) sensors_min_reading[i] = g_sensors[i];
+            if (sensors_max_reading[i] == 0) sensors_max_reading[i] = g_sensors[i];
+            if (g_sensors[i] < sensors_min_reading[i]) sensors_min_reading[i] = g_sensors[i];
+            if (g_sensors[i] > sensors_max_reading[i]) sensors_max_reading[i] = g_sensors[i];
         }
         contador++;
         setSpeed(cruiseSpeed,-cruiseSpeed);

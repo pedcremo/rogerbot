@@ -19,23 +19,23 @@ char es_negre(){
 		return 1; //Black
 	}else{ //Could be white or black but we are not aligned properly
 
-		/*move_robot(velocitat/2,-velocitat/2,FORWARD,5); //Seguretat
+		/*move_robot(g_velocitat/2,-g_velocitat/2,FORWARD,5); //Seguretat
 		sharpIR=readADC(4);
 		delay_ms(10);
 		if (sharpIR<threshold) is_black=1;
-		move_robot(velocitat/2,-velocitat/2,FORWARD,5);
+		move_robot(g_velocitat/2,-g_velocitat/2,FORWARD,5);
 		sharpIR=readADC(4);
 		delay_ms(10);
 		if (sharpIR<threshold) is_black=1;
-		move_robot(-velocitat/2,velocitat/2,FORWARD,15);
+		move_robot(-g_velocitat/2,g_velocitat/2,FORWARD,15);
 		sharpIR=readADC(4);
 		delay_ms(10);
 		if (sharpIR<threshold) is_black=1;
-		move_robot(-velocitat/2,velocitat/2,FORWARD,5);
+		move_robot(-g_velocitat/2,g_velocitat/2,FORWARD,5);
 		sharpIR=readADC(4);
 		delay_ms(10);
 		if (sharpIR<threshold) is_black=1;
-		move_robot(velocitat/2,-velocitat/2,FORWARD,10); //Tornem al mig
+		move_robot(g_velocitat/2,-g_velocitat/2,FORWARD,10); //Tornem al mig
 		*/
 		return 0; //White
 	}
@@ -84,22 +84,22 @@ void follow_line_until_crossroad(int crossroad_number){
 			times_out=0;
 			lectures_seguides_creuament+=1;
 			if (lectures_seguides_creuament>5) beginning_crossroad_found=1;
-			//if (DEBUG) {USART_transmitByte(56);_delay_us(150);} //Print 8
+			//if (g_DEBUG) {USART_transmitByte(56);_delay_us(150);} //Print 8
 		//Estem fora de linia
 		}else if (proporcional==9 || proporcional == -9){
 			lectures_seguides_creuament=0;
 			times_out+=1;
 			if (beginning_crossroad_found == 1){
-				//if (DEBUG) {USART_transmitByte(51);_delay_us(150);} //Print 3
-				//while (finding_line(-velocitat/3,velocitat/3,FORWARD) == 0){};//Girem a dreta fins trobar linia
+				//if (g_DEBUG) {USART_transmitByte(51);_delay_us(150);} //Print 3
+				//while (finding_line(-g_velocitat/3,g_velocitat/3,FORWARD) == 0){};//Girem a dreta fins trobar linia
 				crossroads_found+=1;
 				beginning_crossroad_found=0;
 				if (crossroads_found == crossroad_number){
-					//if (DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
+					//if (g_DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
 					break; //Eixim del bucle
 				}
 			}
-			//if (DEBUG) {USART_transmitByte(52);_delay_us(150);} //Print 4
+			//if (g_DEBUG) {USART_transmitByte(52);_delay_us(150);} //Print 4
 			if (times_out>150) break; //Si estem fora mes del compte
 		//Estem en línia pero _SENSOR_D1 i D2 no estan activats al mateix temps
 		}else{
@@ -111,12 +111,12 @@ void follow_line_until_crossroad(int crossroad_number){
 				if  (proporcional>-9 && proporcional < 9){ //Dins linia
 					beginning_crossroad_found=0;
 					crossroads_found+=1;
-					while (finding_line(-velocitat/3,velocitat/3,FORWARD) == 0){};//Girem a dreta fins trobar linia
-					//if (DEBUG) {USART_transmitByte(55);_delay_us(150);} //Print 7
+					while (finding_line(-g_velocitat/3,g_velocitat/3,FORWARD) == 0){};//Girem a dreta fins trobar linia
+					//if (g_DEBUG) {USART_transmitByte(55);_delay_us(150);} //Print 7
 				}
-				//if (DEBUG) {USART_transmitByte(53);_delay_us(150);} //Print 5
+				//if (g_DEBUG) {USART_transmitByte(53);_delay_us(150);} //Print 5
 				if (crossroads_found == crossroad_number){
-					//if (DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
+					//if (g_DEBUG) {USART_transmitByte(54);_delay_us(150);} //Print 6
 					break; //Eixim del bucle
 				}
 			}
@@ -153,7 +153,7 @@ void adjust_speed_to_a_threshold(int current_read,int desired_read){
 	}else{
 		inc_speed = -(current_read-desired_read)/7;
 	}
-	velocitat+=inc_speed;
+	g_velocitat+=inc_speed;
 
 }
 

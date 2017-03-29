@@ -79,7 +79,7 @@ int PID_obtenir_errorp(void)
 	{
 		errorp = errorp / contador_sensor;
 		ultimo_errorp = errorp;
-		//return(Kp * (int)errorp);
+		//return(g_Kp * (int)errorp);
 		return((int)errorp);
 	}
 	else
@@ -90,7 +90,7 @@ int PID_obtenir_errorp(void)
 			errorp = 0x09;
 
 		ultimo_errorp = errorp;
-		//return((int)errorp * Kp);
+		//return((int)errorp * g_Kp);
 		return((int)errorp);
 	}
 }
@@ -151,7 +151,7 @@ int obtenir_errord(void)
 	{
 		tic++;
 		diferencia = error - error_old;
-		errord = (Kd*100)*(diferencia)/tic; //error mig
+		errord = (g_Kd*100)*(diferencia)/tic; //error mig
 		errord_old = errord;
 		tic_old=tic;
 		tic=0;
@@ -163,34 +163,34 @@ int obtenir_errord(void)
 
 void PID_line_following(int direction){ //0 forward,1 backwards
 	int errort=0;
-	uint8_t Kp_aux=Kp;
+	uint8_t Kp_aux=g_Kp;
 	int derivatiu_aux=0;
 	int speed_M1=0;
 	int speed_M2=0;
 	int proporcional = PID_obtenir_errorp();
 	int derivatiu = obtenir_errord();
-	int velocitat_incrementada=velocitat+turbo;
+	int velocitat_incrementada=g_velocitat+g_turbo;
 	//Si tilt activat
 	//clearBit(DDRB,2);//set PB2 as digital input
 	//clearBit(PORTB,2); //set PB2 LOW  (HIGH IMPEDANCE)
 	/*if 	(bit_is_set(PINB,2)) {
-		velocitat_incrementada=velocitat;
+		g_velocitat_incrementada=g_velocitat;
 	}else{
-		velocitat_incrementada=velocitat/3;
+		g_velocitat_incrementada=g_velocitat/3;
 	}*/
 
 	if (velocitat_incrementada >254) velocitat_incrementada=255;
 	if (proporcional==1 || proporcional==-1 || proporcional==0) {
 			//proporcional=0; //Little HACK
-			Kp_aux=Kp/2;
+			Kp_aux=g_Kp/2;
 			derivatiu_aux=derivatiu/3;
 	}else{
-			Kp_aux=Kp;
+			Kp_aux=g_Kp;
 			derivatiu_aux=derivatiu;
 	}
 
 	errort = (proporcional*Kp_aux) + derivatiu_aux;
-	//errort = (proporcional*Kp) + derivatiu;
+	//errort = (proporcional*g_Kp) + derivatiu;
 	/*if (proporcional>=0x09 || proporcional<=-0x09) cont_corba+=1;
 	else cont_corba=0;*/
 
@@ -209,7 +209,7 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 		if (direction==0){//FORWARD
 				Motor_left_forward(speed_M2);     //Motor esquerra.
 			if (speed_M1<=0){
-				Motor_right_reverse((speed_M2*curve_correction)/100);     //Motor dret.
+				Motor_right_reverse((speed_M2*g_curve_correction)/100);     //Motor dret.
 			}else{
 				Motor_right_forward(speed_M1);     //Motor dret.
 			}
@@ -228,7 +228,7 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 			Motor_right_forward(speed_M1);     //Motor dret.
 			//Motor_left_forward(speed_M2);     //Motor esquerre.
 			if (speed_M2<=0){
-					Motor_left_reverse((speed_M1*curve_correction)/100);     //Motor esquerre.
+					Motor_left_reverse((speed_M1*g_curve_correction)/100);     //Motor esquerre.
 			}else{
 						Motor_left_forward(speed_M2);     //Motor esquerre.
 			}
@@ -238,8 +238,8 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 		}
 	}/*else{
 
-		speed_M1=velocitat_incrementada;
-		speed_M2=velocitat_incrementada;
+		speed_M1=g_velocitat_incrementada;
+		speed_M2=g_velocitat_incrementada;
 		if (direction==0){
 				Motor_left_forward(speed_M2);
 				Motor_right_forward(speed_M1);
@@ -248,7 +248,7 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 				Motor_right_reverse(speed_M1);
 		}
 	}*/
-	if (telemetry_enabled){
+	if (g_telemetry_enabled){
 			USART_transmitByte(proporcional >> 8);
 			USART_transmitByte(proporcional & 0xFF);
 			USART_transmitByte(derivatiu >> 8);
@@ -270,9 +270,9 @@ void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 	int16_t derivative = 0;
 	static int16_t last_proporcional = 0;
 
-	uint8_t velocitat_incrementada=velocitat+turbo;
+	uint8_t velocitat_incrementada=g_velocitat+g_turbo;
 	
-	if (start == 1) {
+	if (g_start == 1) {
 			uint16_t position = read_sensor_bar_calibrated();
 
 			// The "proportional" term should be 0 when we are on the line.
@@ -287,8 +287,8 @@ void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 				// to the right.  If it is a negative number, the robot will
 				// turn to the left, and the magnitude of the number determines
 				// the sharpness of the turn.
-				//Kp 10 i Kd 89 pareixen funcionar be a 255 de velocitat
-				int16_t power_difference = (int16_t) proporcional*10/Kp + derivative*(Kd/3);
+				//g_Kp 10 i g_Kd 89 pareixen funcionar be a 255 de g_velocitat
+				int16_t power_difference = (int16_t) proporcional*10/g_Kp + derivative*(g_Kd/3);
 				//int power_difference = proportional/15  + derivative*2/3;
 
 				// Compute the actual motor settings.  We never set either motor
@@ -300,22 +300,16 @@ void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 					power_difference = -velocitat_incrementada;
 
 				if(power_difference < 0){
-					//speed_M2=(uint8_t) velocitat_incrementada+power_difference;
-					//speed_M1=velocitat_incrementada;
-					Motor_left_forward(velocitat_incrementada+power_difference);
-					Motor_right_forward(velocitat_incrementada);
-					//Motor_left_forward(0);
-					//Motor_right_forward(0);
+					//Motor_left_forward(g_velocitat_incrementada+power_difference);
+					//Motor_right_forward(g_velocitat_incrementada);
+					setSpeed(velocitat_incrementada+power_difference,velocitat_incrementada);
 				}else{
-					//speed_M2=velocitat_incrementada;
-					//speed_M1=(uint8_t) velocitat_incrementada-power_difference;
-					Motor_left_forward(velocitat_incrementada);
-					Motor_right_forward(velocitat_incrementada-power_difference);
-					//Motor_left_forward(0);
-					//Motor_right_forward(0);
+					//Motor_left_forward(g_velocitat_incrementada);
+					//Motor_right_forward(g_velocitat_incrementada-power_difference);
+					setSpeed(velocitat_incrementada,velocitat_incrementada-power_difference);
 				}
 
-			if (telemetry_enabled){
+			if (g_telemetry_enabled){
 					//USART_transmitByte(proporcional >> 8);
 					//USART_transmitByte(proporcional & 0xFF);
 					//USART_transmitByte(0x00);
@@ -330,6 +324,8 @@ void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 			}
 	}else{
      	setSpeed(0,0);
+		 //Motor_left_forward(0);
+		 //Motor_right_forward(0);
 	}
     TIFR1 |= (1<<OCF1A);
 }

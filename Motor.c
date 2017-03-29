@@ -4,39 +4,56 @@
 #include "Main.h"
 
 
-//static int brake_left_counts=0; //Counter used to implement abs brakes
-//static int brake_right_counts=0; //Counter used to implement abs brakes
+static int brake_left_counts=0; //Counter used to implement abs brakes
+static int brake_right_counts=0; //Counter used to implement abs brakes
 
 void setSpeed(int16_t speedLeft,int16_t speedRight){
-   if (speedLeft >= 0) {
-      Motor_left_forward(speedLeft);
+   if (speedLeft >= 0) {      
+	  /*if (speedLeft==0) brake_left_counts+=1;
+	  else brake_left_counts = 0;
+
+	  if (brake_left_counts < 30){*/
+	  	Motor_left_forward(speedLeft);
+	  /*}else{
+		Motor_left_reverse(40);
+		if (brake_left_counts >=60) brake_left_counts = 0;
+	  } */	  
    }else{
 	  Motor_left_reverse(speedLeft*(-1)); 
    }
+
    if (speedRight >= 0) {
-      Motor_right_forward(speedRight);
+      /*if (speedRight==0) brake_right_counts+=1;
+	  else brake_right_counts = 0;
+
+	  if (brake_right_counts < 30){*/
+	  	Motor_right_forward(speedRight);
+	  /*}else{
+		Motor_right_reverse(40);
+		if (brake_right_counts >=60) brake_right_counts = 0;
+	  }*/
    }else{
 	  Motor_right_reverse(speedRight*(-1)); 
    }
 }
 
-//We start from 0 to cruiser speed defined in global var velocitat in velocitat*2 ms
+//We g_start from 0 to cruiser speed defined in global var g_velocitat in g_velocitat*2 ms
 void Motor_acceleracio_progressiva(){
 	int i=0;
 	//Acceleracio poc a poc del pwm a l inici
 	for (i=0;i<255;i++){
-		if (i<velocitat){
+		if (i<g_velocitat){
 			Motor_right_forward(i);	     //Motor derecho.
 			Motor_left_forward(i);	    //Motor izquierdo.
 		}else{
-			Motor_right_forward(velocitat);Motor_left_forward(velocitat);
+			Motor_right_forward(g_velocitat);Motor_left_forward(g_velocitat);
 		}
 		_delay_ms(1);
 	}
 }
 
-//Funcions per controlar la velocitat i direcció dels
-//motors. PWM controla la velocitat, valor entre 0-255.
+//Funcions per controlar la g_velocitat i direcció dels
+//motors. PWM controla la g_velocitat, valor entre 0-255.
 void Motor_right_reverse(unsigned char pwm)
 {
 	//if (pwm==0) brake_right_counts++;else brake_right_counts=0;

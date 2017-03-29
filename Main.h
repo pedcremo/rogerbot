@@ -14,17 +14,17 @@
 
 
 //Global variables shared across project
-extern uint8_t sensors[6];
-extern uint8_t Kp;  //48 lf 18 pots
-extern uint8_t  Kd;//148 lf 28 pots multiplicador 10
-extern volatile uint8_t velocitat; //180 lf 95 pots max 255
-extern volatile uint8_t turbo; //Speed increment
-extern uint8_t telemetry_enabled;
-extern uint8_t curve_correction;
-extern char strategy;
-extern volatile char start;
+extern uint8_t g_sensors[6];
+extern uint8_t g_Kp;  //48 lf 18 pots
+extern uint8_t  g_Kd;//148 lf 28 pots multiplicador 10
+extern volatile uint8_t g_velocitat; //180 lf 95 pots max 255
+extern volatile uint8_t g_turbo; //Speed increment
+extern uint8_t g_telemetry_enabled;
+extern uint8_t g_curve_correction;
+extern char g_strategy;
+extern volatile char g_start;
 extern uint16_t compass_direction_to_follow;
-extern uint8_t DEBUG;
+extern uint8_t g_DEBUG;
 
 //Main functions
 void init_ports(void);
