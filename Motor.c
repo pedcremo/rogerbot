@@ -8,30 +8,22 @@ static int brake_left_counts=0; //Counter used to implement abs brakes
 static int brake_right_counts=0; //Counter used to implement abs brakes
 
 void setSpeed(int16_t speedLeft,int16_t speedRight){
+	if (speedLeft >255) speedLeft = 255;
+	if (speedLeft <-255) speedLeft = -255;
+	
+	if (speedRight >255) speedRight = 255;
+	if (speedRight <-255) speedRight = -255;
+	
    if (speedLeft >= 0) {      
-	  /*if (speedLeft==0) brake_left_counts+=1;
-	  else brake_left_counts = 0;
-
-	  if (brake_left_counts < 30){*/
 	  	Motor_left_forward(speedLeft);
-	  /*}else{
-		Motor_left_reverse(40);
-		if (brake_left_counts >=60) brake_left_counts = 0;
-	  } */	  
+	  	  
    }else{
 	  Motor_left_reverse(speedLeft*(-1)); 
    }
 
    if (speedRight >= 0) {
-      /*if (speedRight==0) brake_right_counts+=1;
-	  else brake_right_counts = 0;
-
-	  if (brake_right_counts < 30){*/
-	  	Motor_right_forward(speedRight);
-	  /*}else{
-		Motor_right_reverse(40);
-		if (brake_right_counts >=60) brake_right_counts = 0;
-	  }*/
+      	Motor_right_forward(speedRight);
+	 
    }else{
 	  Motor_right_reverse(speedRight*(-1)); 
    }

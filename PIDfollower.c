@@ -230,7 +230,7 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 			if (speed_M2<=0){
 					Motor_left_reverse((speed_M1*g_curve_correction)/100);     //Motor esquerre.
 			}else{
-						Motor_left_forward(speed_M2);     //Motor esquerre.
+					Motor_left_forward(speed_M2);     //Motor esquerre.
 			}
 		}else{
 			Motor_left_reverse(speed_M1);     //Motor esquerre.
@@ -294,10 +294,10 @@ void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 				// Compute the actual motor settings.  We never set either motor
 				// to a negative value.
 
-				if(power_difference > velocitat_incrementada)
+				/*if(power_difference > velocitat_incrementada)
 					power_difference = velocitat_incrementada;
 				if(power_difference < -velocitat_incrementada)
-					power_difference = -velocitat_incrementada;
+					power_difference = -velocitat_incrementada;*/
 
 				if(power_difference < 0){
 					//Motor_left_forward(g_velocitat_incrementada+power_difference);

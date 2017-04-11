@@ -62,10 +62,11 @@ int main( void )
 	delay_ms(2000);
 	calibrate_sensors();
 	//init_encoders();
-	while(pulsador != 0)
+	while(g_start == 0)
 	{
 		pulsador = PINB & (1<<PULSADOR);
-        if (g_start==1) break;
+		if (pulsador == 0) g_start=1;
+        //if (g_start==1) break;
 	}
 	delay_ms(5000);//Esperem 5 segons després de la polsació boto
 
