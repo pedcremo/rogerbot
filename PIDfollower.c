@@ -178,86 +178,89 @@ void PID_line_following(int direction){ //0 forward,1 backwards
 	}else{
 		g_velocitat_incrementada=g_velocitat/3;
 	}*/
-
-	if (velocitat_incrementada >254) velocitat_incrementada=255;
-	if (proporcional==1 || proporcional==-1 || proporcional==0) {
-			//proporcional=0; //Little HACK
-			Kp_aux=g_Kp/2;
-			derivatiu_aux=derivatiu/3;
-	}else{
-			Kp_aux=g_Kp;
-			derivatiu_aux=derivatiu;
-	}
-
-	errort = (proporcional*Kp_aux) + derivatiu_aux;
-	//errort = (proporcional*g_Kp) + derivatiu;
-	/*if (proporcional>=0x09 || proporcional<=-0x09) cont_corba+=1;
-	else cont_corba=0;*/
-
-	if(errort > velocitat_incrementada)
-		errort = velocitat_incrementada;
-	else if(errort < - velocitat_incrementada)
-		errort = - velocitat_incrementada;
-
-
-
-	if(errort>=0){
-		speed_M1=velocitat_incrementada - errort;
-		speed_M2=velocitat_incrementada;
-		//if (cont_corba>=3) Motor_right_reverse(speed_M2);
-		//else
-		if (direction==0){//FORWARD
-				Motor_left_forward(speed_M2);     //Motor esquerra.
-			if (speed_M1<=0){
-				Motor_right_reverse((speed_M2*g_curve_correction)/100);     //Motor dret.
+	if (g_start == 1) {
+			if (velocitat_incrementada >254) velocitat_incrementada=255;
+			if (proporcional==1 || proporcional==-1 || proporcional==0) {
+					//proporcional=0; //Little HACK
+					Kp_aux=g_Kp/2;
+					derivatiu_aux=derivatiu/3;
 			}else{
-				Motor_right_forward(speed_M1);     //Motor dret.
+					Kp_aux=g_Kp;
+					derivatiu_aux=derivatiu;
 			}
-		}else{
-			Motor_right_reverse(speed_M2);     //Motor dret.
-				Motor_left_reverse(speed_M1);     //Motor esquerre.
-		}
 
-	//}else if(errort<0){
-	}else{
-		speed_M1=velocitat_incrementada;
-		speed_M2=velocitat_incrementada+errort;
-		//if (cont_corba>=3) Motor_left_reverse(speed_M1);
-		//else
-		if (direction==0){//FORWARD
-			Motor_right_forward(speed_M1);     //Motor dret.
-			//Motor_left_forward(speed_M2);     //Motor esquerre.
-			if (speed_M2<=0){
-					Motor_left_reverse((speed_M1*g_curve_correction)/100);     //Motor esquerre.
+			errort = (proporcional*Kp_aux) + derivatiu_aux;
+			//errort = (proporcional*g_Kp) + derivatiu;
+			/*if (proporcional>=0x09 || proporcional<=-0x09) cont_corba+=1;
+			else cont_corba=0;*/
+
+			if(errort > velocitat_incrementada)
+				errort = velocitat_incrementada;
+			else if(errort < - velocitat_incrementada)
+				errort = - velocitat_incrementada;
+
+
+
+			if(errort>=0){
+				speed_M1=velocitat_incrementada - errort;
+				speed_M2=velocitat_incrementada;
+				//if (cont_corba>=3) Motor_right_reverse(speed_M2);
+				//else
+				if (direction==0){//FORWARD
+						Motor_left_forward(speed_M2);     //Motor esquerra.
+					if (speed_M1<=0){
+						Motor_right_reverse((speed_M2*g_curve_correction)/100);     //Motor dret.
+					}else{
+						Motor_right_forward(speed_M1);     //Motor dret.
+					}
+				}else{
+					Motor_right_reverse(speed_M2);     //Motor dret.
+						Motor_left_reverse(speed_M1);     //Motor esquerre.
+				}
+
+			//}else if(errort<0){
 			}else{
-					Motor_left_forward(speed_M2);     //Motor esquerre.
+				speed_M1=velocitat_incrementada;
+				speed_M2=velocitat_incrementada+errort;
+				//if (cont_corba>=3) Motor_left_reverse(speed_M1);
+				//else
+				if (direction==0){//FORWARD
+					Motor_right_forward(speed_M1);     //Motor dret.
+					//Motor_left_forward(speed_M2);     //Motor esquerre.
+					if (speed_M2<=0){
+							Motor_left_reverse((speed_M1*g_curve_correction)/100);     //Motor esquerre.
+					}else{
+							Motor_left_forward(speed_M2);     //Motor esquerre.
+					}
+				}else{
+					Motor_left_reverse(speed_M1);     //Motor esquerre.
+						Motor_right_reverse(speed_M2);     //Motor dret.
+				}
+			}/*else{
+
+				speed_M1=g_velocitat_incrementada;
+				speed_M2=g_velocitat_incrementada;
+				if (direction==0){
+						Motor_left_forward(speed_M2);
+						Motor_right_forward(speed_M1);
+				}else{
+					Motor_left_reverse(speed_M2);
+						Motor_right_reverse(speed_M1);
+				}
+			}*/
+			if (g_telemetry_enabled){
+					USART_transmitByte(proporcional >> 8);
+					USART_transmitByte(proporcional & 0xFF);
+					USART_transmitByte(derivatiu >> 8);
+					USART_transmitByte(derivatiu & 0xFF);
+					USART_transmitByte(speed_M2);//Motor esquerre
+					USART_transmitByte(speed_M1);//Motor dret
+
 			}
-		}else{
-			Motor_left_reverse(speed_M1);     //Motor esquerre.
-				Motor_right_reverse(speed_M2);     //Motor dret.
-		}
-	}/*else{
-
-		speed_M1=g_velocitat_incrementada;
-		speed_M2=g_velocitat_incrementada;
-		if (direction==0){
-				Motor_left_forward(speed_M2);
-				Motor_right_forward(speed_M1);
-		}else{
-			Motor_left_reverse(speed_M2);
-				Motor_right_reverse(speed_M1);
-		}
-	}*/
-	if (g_telemetry_enabled){
-			USART_transmitByte(proporcional >> 8);
-			USART_transmitByte(proporcional & 0xFF);
-			USART_transmitByte(derivatiu >> 8);
-			USART_transmitByte(derivatiu & 0xFF);
-			USART_transmitByte(speed_M2);//Motor esquerre
-			USART_transmitByte(speed_M1);//Motor dret
-
-	}
-
+}else{
+	Motor_left_forward(0);
+	Motor_right_forward(speed_M2);
+}
 	TIFR1 |= (1<<OCF1A);
 }
 
@@ -294,10 +297,10 @@ void PID_line_followingNEW(int direction){ //0 forward,1 backwards
 				// Compute the actual motor settings.  We never set either motor
 				// to a negative value.
 
-				/*if(power_difference > velocitat_incrementada)
+				if(power_difference > velocitat_incrementada)
 					power_difference = velocitat_incrementada;
 				if(power_difference < -velocitat_incrementada)
-					power_difference = -velocitat_incrementada;*/
+					power_difference = -velocitat_incrementada;
 
 				if(power_difference < 0){
 					//Motor_left_forward(g_velocitat_incrementada+power_difference);
